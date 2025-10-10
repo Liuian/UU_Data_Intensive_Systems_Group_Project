@@ -1,0 +1,10 @@
+Income = 54 AND NumWebVisitsMonth = 18
+MntGoldProds = 37 AND MntMeatProducts = 5
+Recency = 78 AND AcceptedCmp1 = 95
+AcceptedCmp2 = 51
+AcceptedCmp5 = 46 AND Recency = 40
+NumDealsPurchases = 32 AND AcceptedCmp2 = 24
+Kidhome = 97
+MntFishProducts = 22 AND Year_Birth = 35
+MntWines = 98 AND Teenhome = 100
+MntFishProducts = 56
