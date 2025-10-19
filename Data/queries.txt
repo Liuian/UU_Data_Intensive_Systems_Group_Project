@@ -1,0 +1,10 @@
+Income = 12 AND Recency = 99
+AcceptedCmp4 = 49
+AcceptedCmp5 = 63 AND Year_Birth = 78
+AcceptedCmp2 = 29
+AcceptedCmp2 = 67
+AcceptedCmp4 = 24 AND Teenhome = 53
+Response = 32 AND Year_Birth = 17
+NumWebPurchases = 58 AND MntWines = 43
+NumDealsPurchases = 97
+MntSweetProducts = 75
