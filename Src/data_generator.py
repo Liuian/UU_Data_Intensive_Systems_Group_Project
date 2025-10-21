@@ -23,6 +23,7 @@ def create_subsets():
     
     # Create subsets
     subsets = [
+        ("tiny", 10),
         ("small", 100),
         ("medium", 500), 
         ("large", 2000)
@@ -52,3 +53,6 @@ def create_subsets():
         print(f"   📄 {file}")
     
     return created_files
+
+if __name__ == "__main__":
+    create_subsets()

@@ -28,7 +28,7 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=
             print(f"{col_name} range: {numeric_ranges[col_name]}")
     
     logical_operators = ['AND', 'OR']
-    logical_weights = [0.7, 0.3] 
+    logical_weights = [0.5, 0.5] 
     comparison_operators = ['=', '>', '<', '>=', '<=']
     comparison_weights = [0.2, 0.3, 0.3, 0.1, 0.1]
 
