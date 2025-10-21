@@ -1,34 +1,35 @@
+import os
 import random
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, min, max
 
 def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=3):
     """
-    Generate queries with weighted selection of columns (70% important columns, 30% second tier columns)
+    Generate queries with weighted selection (70% important, 30% second tier)
     """
     # Read the CSV file using Spark
     df = spark.read.csv(csv_file_path, header=True, inferSchema=True)
-    
+
     # Define column groups
     important_columns = ['Income', 'Year_Birth', 'Recency', 'NumDealsPurchases', 'NumStorePurchases']
     second_tier_columns = ['Kidhome', 'Teenhome', 'MntFruits', 'MntMeatProducts', 'NumWebPurchases', 'NumWebVisitsMonth']
-    
+
     # Collect value ranges for all columns using Spark
     numeric_ranges = {}
     all_columns = important_columns + second_tier_columns
-    
+
     for col_name in all_columns:
         if col_name in df.columns:
             min_max_df = df.select(
                 min(col(col_name)).alias('min_val'),
                 max(col(col_name)).alias('max_val')
             ).collect()[0]
-            
+
             numeric_ranges[col_name] = (min_max_df['min_val'], min_max_df['max_val'])
             print(f"{col_name} range: {numeric_ranges[col_name]}")
-    
+
     logical_operators = ['AND', 'OR']
-    logical_weights = [0.5, 0.5] 
+    logical_weights = [0.5, 0.5]
     comparison_operators = ['=', '>', '<', '>=', '<=']
     comparison_weights = [0.2, 0.3, 0.3, 0.1, 0.1]
 
@@ -37,14 +38,32 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=
         num_conditions = random.randint(1, max_conditions)
         conditions = []
         selected_columns = []
-        
-        # Weighted column selection
+
+        # Weighted column selection WITHOUT duplicates
+        available_columns = all_columns.copy()
         for _ in range(num_conditions):
+            if len(available_columns) == 0:
+                break
+                
             if random.random() < 0.7:  # 70% chance for important columns
-                selected_columns.append(random.choice(important_columns))
+                # Filter available important columns
+                available_important = [col for col in available_columns if col in important_columns]
+                if available_important:
+                    chosen_col = random.choice(available_important)
+                else:
+                    chosen_col = random.choice(available_columns)
             else:  # 30% chance for second tier columns
-                selected_columns.append(random.choice(second_tier_columns))
-        
+                # Filter available second tier columns
+                available_second = [col for col in available_columns if col in second_tier_columns]
+                if available_second:
+                    chosen_col = random.choice(available_second)
+                else:
+                    chosen_col = random.choice(available_columns)
+            
+            selected_columns.append(chosen_col)
+            # Remove the chosen column to prevent duplicates
+            available_columns.remove(chosen_col)
+
         # Choose operator when multiple conditions
         if num_conditions > 1:
             logical_op = random.choices(logical_operators, weights=logical_weights)[0]
@@ -55,10 +74,10 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=
         for j, col_name in enumerate(selected_columns):
             if col_name in numeric_ranges:
                 min_val, max_val = numeric_ranges[col_name]
-                
+
                 # Choose comparison operator
                 comp_op = random.choices(comparison_operators, weights=comparison_weights)[0]
-            
+
                 # Generate appropriate value based on operator
                 if comp_op == '=':
                     value = random.randint(int(min_val), int(max_val))
@@ -82,35 +101,29 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=
                         value = random.randint(int(min_val), int(max_val))
                 else:
                     value = random.randint(int(min_val), int(max_val))
-                
+
                 # Build condition string
                 condition = f"{col_name} {comp_op} {value}"
                 conditions.append(condition)
-        
+
         # Combine conditions
         if len(conditions) == 1:
             query = conditions[0]
         else:
             query = f" {logical_op} ".join(conditions)
-       
+
         queries.append(query)
-    
+
     # Save queries to file
-    with open("../Data/queries.txt", "w") as file:
+    base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
+    queries_dir = os.path.dirname(csv_file_path)
+    queries_file = os.path.join(queries_dir, f"{base_name}_queries.txt")
+    with open(queries_file, "w") as file:
         file.write("\n".join(queries))
-    
+
+
     print(f"Generated {len(queries)} queries with weighted column selection")
+    
+    
     return queries
 
-# Usage example:
-if __name__ == "__main__":
-    spark = SparkSession.builder.appName("QueryGen").getOrCreate()
-    
-    generate_queries_weighted(
-        spark=spark,
-        csv_file_path="../Data/tmp_small.csv",
-        num_queries=10,
-        max_conditions=3
-    )
-    
-    spark.stop()
