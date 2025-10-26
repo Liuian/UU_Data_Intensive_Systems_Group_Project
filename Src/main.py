@@ -39,6 +39,7 @@ for dataset in subset_list:
 
             for T in t_values:
                 base_name = os.path.basename(dataset).split('.')[0]
+                # Some code to measure our parameters
                 method1(spark, dataset, T, f"../Results/m1_{base_name}_q{q}_c{c}_T{T}.csv", load_queries(queries))
                 #call other methods 
 spark.stop()
