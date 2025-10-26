@@ -3,22 +3,39 @@ import random
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, min, max
 
+"""
+    Generate queries with weighted selection 
+    (70% important, 25% second tier, 5% unimportant)
+    Makes txt files of queries based on the input CSV file
+    Returns the path to the generated queries file
+"""
 def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=3):
-    """
-    Generate queries with weighted selection (70% important, 30% second tier)
-    """
+ 
     # Read the CSV file using Spark
     df = spark.read.csv(csv_file_path, header=True, inferSchema=True)
 
     # Define column groups
-    important_columns = ['Income', 'Year_Birth', 'Recency', 'NumDealsPurchases', 'NumStorePurchases']
-    second_tier_columns = ['Kidhome', 'Teenhome', 'MntFruits', 'MntMeatProducts', 'NumWebPurchases', 'NumWebVisitsMonth']
+    important_columns = ['Income', 'Year_Birth', 'Recency', 'NumDealsPurchases', 'NumStorePurchases', 'Education', 'Marital_Status', 'MntGoldProds', 'Complain']
+    second_tier_columns = ['Kidhome', 'Teenhome', 'MntFruits', 'MntMeatProducts', 'NumWebPurchases', 'NumWebVisitsMonth', 'MntFishProducts', 'MntSweetProducts', 'NumCatalogPurchases', ]
+    unimportant_columns = ['AcceptedCmp1', 'AcceptedCmp2', 'AcceptedCmp3', 'AcceptedCmp4', 'AcceptedCmp5', 'Response', 'ID', 'Dt_Customer', 'MntWines', 'Z_CostContact', 'Z_Revenue']
 
-    # Collect value ranges for all columns using Spark
+    
+    # Get all numeric columns from the dataset for fallback
+    all_numeric_columns = [col_name for col_name, dtype in df.dtypes if dtype in ['int', 'bigint', 'double', 'float']]
+    
+    # Combine all available columns
+    all_columns = important_columns + second_tier_columns + unimportant_columns
+    # Filter to only include columns that actually exist in the dataset
+    available_columns = [col for col in all_columns if col in df.columns]
+    
+    # If we don't have enough columns, add from all numeric columns
+    if len(available_columns) < 5:
+        additional_cols = [col for col in all_numeric_columns if col not in available_columns]
+        available_columns.extend(additional_cols[:5])  # Add up to 5 additional columns
+
+    # Collect value ranges for all available columns using Spark
     numeric_ranges = {}
-    all_columns = important_columns + second_tier_columns
-
-    for col_name in all_columns:
+    for col_name in available_columns:
         if col_name in df.columns:
             min_max_df = df.select(
                 min(col(col_name)).alias('min_val'),
@@ -40,29 +57,34 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=
         selected_columns = []
 
         # Weighted column selection WITHOUT duplicates
-        available_columns = all_columns.copy()
+        current_available = available_columns.copy()
         for _ in range(num_conditions):
-            if len(available_columns) == 0:
+            if len(current_available) == 0:
                 break
                 
-            if random.random() < 0.7:  # 70% chance for important columns
-                # Filter available important columns
-                available_important = [col for col in available_columns if col in important_columns]
+            rand_val = random.random()
+            if rand_val < 0.50:  # 50% chance for important columns
+                available_important = [col for col in current_available if col in important_columns]
                 if available_important:
                     chosen_col = random.choice(available_important)
                 else:
-                    chosen_col = random.choice(available_columns)
-            else:  # 30% chance for second tier columns
-                # Filter available second tier columns
-                available_second = [col for col in available_columns if col in second_tier_columns]
+                    chosen_col = random.choice(current_available)
+            elif rand_val < 0.85:  # 35% chance for second tier columns (50 + 35 = 85)
+                available_second = [col for col in current_available if col in second_tier_columns]
                 if available_second:
                     chosen_col = random.choice(available_second)
                 else:
-                    chosen_col = random.choice(available_columns)
+                    chosen_col = random.choice(current_available)
+            else:  # 5% chance for unimportant columns
+                available_unimportant = [col for col in current_available if col in unimportant_columns]
+                if available_unimportant:
+                    chosen_col = random.choice(available_unimportant)
+                else:
+                    chosen_col = random.choice(current_available)
             
             selected_columns.append(chosen_col)
             # Remove the chosen column to prevent duplicates
-            available_columns.remove(chosen_col)
+            current_available.remove(chosen_col)
 
         # Choose operator when multiple conditions
         if num_conditions > 1:
@@ -121,9 +143,7 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=
     with open(queries_file, "w") as file:
         file.write("\n".join(queries))
 
-
     print(f"Generated {len(queries)} queries with weighted column selection")
+    print(f"Weight distribution: 70% important, 25% second tier, 5% unimportant")
     
-    
-    return queries
-
+    return queries_file
