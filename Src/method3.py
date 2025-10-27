@@ -1,30 +1,10 @@
 #%%
-import csv
-from itertools import combinations
+import time
 import math
 import numpy as np
-from pyspark.sql import SparkSession, functions as F
-import time
-from method1 import parse_query_to_condition
-
-
-#%% Functions
-def read_csv_collect_rows(path):
-    rows = []
-    with open(path, newline='') as f:
-        r = csv.reader(f)
-        header = next(r)
-        for row in r:
-            rows.append(row)
-    return header, rows
-
-def row_to_vector(row, cols_to_use=None):
-    # convert selected columns (strings) to integer vector (dataset already integers)
-    if cols_to_use is None:
-        cols_to_use = range(len(row))
-    # cast to int first (dataset values are integers), then to float for numeric ops
-    vec = [int(row[i]) for i in cols_to_use]
-    return np.array(vec, dtype=float)
+from itertools import combinations
+from pyspark.sql import functions as F
+from utils import compute_diversity_from_avg_pairwise_cosine, parse_query_to_condition
 
 def cosine_similarity(a, b):
     na = np.linalg.norm(a)
@@ -128,7 +108,7 @@ def main(input_csv, T, output_csv, spark, queries):
     end_time = time.time()
     runtime = end_time - start_time
 
-    # Compute query coverage: fraction of provided queries that match at least one row in top_tuples_df
+    # 7. Compute query coverage: fraction of provided queries that match at least one row in top_tuples_df
     query_coverage = None
     try:
         if queries and len(queries) > 0:
@@ -148,70 +128,31 @@ def main(input_csv, T, output_csv, spark, queries):
         print(f"Failed to compute query coverage in method3: {e}")
         query_coverage = None
 
-    # 7. Compute metrics for the selected top-T set before stopping Spark
+    # 8. Compute imp_R, diversity for the selected top-T set
     try:
         collected_top = top_tuples_df.collect()
+        # build vecs list (rows -> numpy vectors)
+        vecs = []
         if collected_top:
-            # use data_col_names as feature columns
-            vecs = []
             for r in collected_top:
                 try:
                     vals = [float(r[c]) if r[c] is not None else 0.0 for c in data_col_names]
                     vecs.append(np.array(vals, dtype=float))
                 except Exception:
                     continue
-            vecs = np.vstack(vecs) if len(vecs) > 0 else np.empty((0, len(data_col_names)))
-            if vecs.shape[0] > 0:
-                centroid = np.mean(vecs, axis=0)
-                sims = []
-                for v in vecs:
-                    na = np.linalg.norm(v)
-                    nc = np.linalg.norm(centroid)
-                    sim = 0.0
-                    if na != 0 and nc != 0:
-                        sim = float(np.dot(v, centroid) / (na * nc))
-                    sims.append(sim)
-                dissimilarities = [1.0 - s for s in sims]
-                imp_R = float(np.mean(dissimilarities))
-
-                pair_sims = []
-                m = vecs.shape[0]
-                if m > 1:
-                    for i in range(m):
-                        for j in range(i + 1, m):
-                            a = vecs[i]
-                            b = vecs[j]
-                            na = np.linalg.norm(a)
-                            nb = np.linalg.norm(b)
-                            if na == 0 or nb == 0:
-                                s = 0.0
-                            else:
-                                s = float(np.dot(a, b) / (na * nb))
-                            pair_sims.append(s)
-                    avg_cos_sim = float(np.mean(pair_sims))
-                else:
-                    avg_cos_sim = 1.0 if m == 1 else None
-                diversity = 1.0 - avg_cos_sim if avg_cos_sim is not None else None
-            else:
-                imp_R = None
-                avg_cos_sim = None
-                diversity = None
-        else:
-            imp_R = None
-            avg_cos_sim = None
-            diversity = None
+        # compute imp_R
+        imp_R = imp_of_set(vecs)
+        # compute diversity from avg_cos_sim
+        diversity = compute_diversity_from_avg_pairwise_cosine(vecs)
     except Exception as e:
         print(f"Failed to compute metrics in method3: {e}")
         imp_R = None
-        avg_cos_sim = None
         diversity = None
 
     # Return metrics to caller
     return {
         'imp_R': imp_R,
-        'avg_cosine_sim': avg_cos_sim,
         'diversity': diversity,
-        'output_path': output_csv,
         'runtime': runtime,
         'query_coverage': query_coverage
     }
