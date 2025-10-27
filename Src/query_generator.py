@@ -9,7 +9,7 @@ from pyspark.sql.functions import col, min, max
     Makes txt files of queries based on the input CSV file
     Returns the path to the generated queries file
 """
-def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions=3):
+def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions):
  
     # Read the CSV file using Spark
     df = spark.read.csv(csv_file_path, header=True, inferSchema=True)

@@ -1,21 +1,12 @@
 #%%
-import os
-# Set environment / JVM flags before importing pyspark so the JVM picks them up.
-# This avoids UserGroupInformation/Subject errors on newer JDKs for local runs.
-os.environ.setdefault("HADOOP_USER_NAME", "sparkuser")
-# Ensure the JVM option is applied early for driver and executor
-os.environ.setdefault("JAVA_TOOL_OPTIONS", "-Djavax.security.auth.useSubjectCredsOnly=false")
-# Also pass via PYSPARK_SUBMIT_ARGS for pyspark-shell initialization
-os.environ.setdefault(
-    "PYSPARK_SUBMIT_ARGS",
-    "--conf spark.driver.extraJavaOptions=-Djavax.security.auth.useSubjectCredsOnly=false --conf spark.executor.extraJavaOptions=-Djavax.security.auth.useSubjectCredsOnly=false pyspark-shell",
-)
-
 import csv
 from itertools import combinations
 import math
 import numpy as np
 from pyspark.sql import SparkSession, functions as F
+import time
+from method1 import parse_query_to_condition
+
 
 #%% Functions
 def read_csv_collect_rows(path):
@@ -88,25 +79,12 @@ def exact_shapley(vectors, ids):
                 acc[ids[i]] += weight * marginal
     return acc
 
-def main(input_csv, T, output_csv):
-    # 1. Start Spark Session
-    # Add configuration to handle JDK 17+ incompatibility with Hadoop's UserGroupInformation
-    # Set a simple HADOOP user for local runs to avoid UGI issues
-    os.environ.setdefault("HADOOP_USER_NAME", "sparkuser")
-
-    # JVM system property that avoids Subject usage in some Java versions
-    java_auth_flag = "-Djavax.security.auth.useSubjectCredsOnly=false"
-
-    # Build Spark session for local execution; include extraJavaOptions to pass JVM flag
-    spark = (
-        SparkSession.builder.master("local[*]")
-        .appName("method3_shapley")
-        .config("spark.hadoop.fs.defaultFS", "file:/")
-        .config("spark.hadoop.hadoop.security.user.provider.class", "org.apache.hadoop.security.authentication.util.KerberosName$NoOpUserProvider")
-        .config("spark.driver.extraJavaOptions", java_auth_flag)
-        .config("spark.executor.extraJavaOptions", java_auth_flag)
-        .getOrCreate()
-    )
+def main(input_csv, T, output_csv, spark, queries):
+    """
+    Compute exact Shapley and write top-T. If a SparkSession is provided, use it and do NOT stop it.
+    If no SparkSession is provided, create one and stop it at the end.
+    """
+    start_time = time.time()
 
     # 2. Use Spark to read and process data
     # Read CSV, infer schema, and use the first row as header
@@ -137,8 +115,6 @@ def main(input_csv, T, output_csv):
     # Convert IDs back to original data type (assumed int) for filtering
     top_ids = [int(iid) for iid, sc in sorted_ids[:int(T)]]
 
-
-
     # 6. Use Spark to filter and write results
     # Create a DataFrame containing only the top IDs for join/filter
     top_ids_df = spark.createDataFrame([(i,) for i in top_ids], [id_col_name])
@@ -149,17 +125,93 @@ def main(input_csv, T, output_csv):
     # Write result as a single CSV file
     top_tuples_df.coalesce(1).write.csv(output_csv, header=True, mode="overwrite")
 
-    # 7. Stop Spark Session
-    spark.stop()
-    print(f"Done. Wrote top {T} items to directory {output_csv} using Spark")
+    end_time = time.time()
+    runtime = end_time - start_time
 
-#%% --- 1. Parameters ---
-# Please set input/output file paths and parameters here
-INPUT_CSV_PATH = "/Users/peggy/Documents/uu_master_data_science/uu_data_intensive_systems_group_project/Data/data_test_10.csv"
-OUTPUT_CSV_PATH = "/Users/peggy/Documents/uu_master_data_science/uu_data_intensive_systems_group_project/Data/method3_output.csv"
-T_VALUE = 4  # 要選取的頂部資料筆數
+    # Compute query coverage: fraction of provided queries that match at least one row in top_tuples_df
+    query_coverage = None
+    try:
+        if queries and len(queries) > 0:
+            cov_count = 0
+            for q in queries:
+                try:
+                    cond = parse_query_to_condition(q)
+                    if cond is None:
+                        continue
+                    if top_tuples_df.filter(cond).limit(1).count() > 0:
+                        cov_count += 1
+                except Exception:
+                    # skip queries that fail to parse or evaluate
+                    continue
+            query_coverage = cov_count / max(1, len(queries))
+    except Exception as e:
+        print(f"Failed to compute query coverage in method3: {e}")
+        query_coverage = None
 
-#%% --- 2. Run main script ---
-print("Starting Shapley value computation...")
-main(INPUT_CSV_PATH, T_VALUE, OUTPUT_CSV_PATH)
-print("Program finished.")
+    # 7. Compute metrics for the selected top-T set before stopping Spark
+    try:
+        collected_top = top_tuples_df.collect()
+        if collected_top:
+            # use data_col_names as feature columns
+            vecs = []
+            for r in collected_top:
+                try:
+                    vals = [float(r[c]) if r[c] is not None else 0.0 for c in data_col_names]
+                    vecs.append(np.array(vals, dtype=float))
+                except Exception:
+                    continue
+            vecs = np.vstack(vecs) if len(vecs) > 0 else np.empty((0, len(data_col_names)))
+            if vecs.shape[0] > 0:
+                centroid = np.mean(vecs, axis=0)
+                sims = []
+                for v in vecs:
+                    na = np.linalg.norm(v)
+                    nc = np.linalg.norm(centroid)
+                    sim = 0.0
+                    if na != 0 and nc != 0:
+                        sim = float(np.dot(v, centroid) / (na * nc))
+                    sims.append(sim)
+                dissimilarities = [1.0 - s for s in sims]
+                imp_R = float(np.mean(dissimilarities))
+
+                pair_sims = []
+                m = vecs.shape[0]
+                if m > 1:
+                    for i in range(m):
+                        for j in range(i + 1, m):
+                            a = vecs[i]
+                            b = vecs[j]
+                            na = np.linalg.norm(a)
+                            nb = np.linalg.norm(b)
+                            if na == 0 or nb == 0:
+                                s = 0.0
+                            else:
+                                s = float(np.dot(a, b) / (na * nb))
+                            pair_sims.append(s)
+                    avg_cos_sim = float(np.mean(pair_sims))
+                else:
+                    avg_cos_sim = 1.0 if m == 1 else None
+                diversity = 1.0 - avg_cos_sim if avg_cos_sim is not None else None
+            else:
+                imp_R = None
+                avg_cos_sim = None
+                diversity = None
+        else:
+            imp_R = None
+            avg_cos_sim = None
+            diversity = None
+    except Exception as e:
+        print(f"Failed to compute metrics in method3: {e}")
+        imp_R = None
+        avg_cos_sim = None
+        diversity = None
+
+    # Return metrics to caller
+    return {
+        'imp_R': imp_R,
+        'avg_cosine_sim': avg_cos_sim,
+        'diversity': diversity,
+        'output_path': output_csv,
+        'runtime': runtime,
+        'query_coverage': query_coverage
+    }
