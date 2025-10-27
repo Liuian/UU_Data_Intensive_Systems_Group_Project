@@ -12,7 +12,8 @@ os.environ.setdefault(
 )
 
 import csv
-import random
+from itertools import combinations
+import math
 import numpy as np
 from pyspark.sql import SparkSession, functions as F
 
@@ -50,33 +51,44 @@ def imp_of_set(vectors):
     dissimilarities = [1.0 - s for s in sims]
     return float(np.mean(dissimilarities))
 
-def approximate_shapley(vectors, ids, num_samples=100, seed=123):
-    # vectors: list of numpy arrays; ids: same order identifiers
+def exact_shapley(vectors, ids):
+    """
+    Compute exact Shapley values for each element using the importance function
+    imp(R') = average_{t in R'} (1 - sim(t, centroid(R'))).
+
+    This enumerates all subsets S of R \ {t} and uses the exact Shapley weight:
+        weight = |S|! * (n - |S| - 1)! / n!
+
+    Complexity is exponential; we enforce a safety limit on n (default 20).
+    """
     n = len(vectors)
+    if n == 0:
+        return {}
+    # Safety guard: exact enumeration is O(n * 2^n). Adjust as needed.
+    if n > 20:
+        raise ValueError(f"Exact Shapley is exponential; n must be <= 20. Current n={n}")
+
     acc = {ids[i]: 0.0 for i in range(n)}
-    random.seed(seed)
-    for s in range(num_samples):
-        order = list(range(n))
-        random.shuffle(order)
-        prefix_vectors = []
-        imp_prefix = 0.0
-        # iterate in permutation order
-        for idx in order:
-            v = vectors[idx]
-            # marginal = imp(prefix ∪ {v}) - imp(prefix)
-            new_vectors = prefix_vectors + [v]
-            imp_new = imp_of_set(new_vectors)
-            marginal = imp_new - imp_prefix
-            acc[ids[idx]] += marginal
-            # update prefix
-            prefix_vectors = new_vectors
-            imp_prefix = imp_new
-    # average over samples
-    for k in acc:
-        acc[k] = acc[k] / num_samples
+    fact = [math.factorial(i) for i in range(n + 1)]
+    denom = fact[n]
+    indices = list(range(n))
+
+    # For each element t, sum marginal contributions over all subsets S ⊆ R \ {t}
+    for i in range(n):
+        others = [j for j in indices if j != i]
+        # iterate subset sizes
+        for r in range(0, len(others) + 1):
+            # iterate subsets of size r
+            for S in combinations(others, r):
+                S_vectors = [vectors[j] for j in S]
+                imp_S = imp_of_set(S_vectors)
+                imp_Si = imp_of_set(S_vectors + [vectors[i]])
+                marginal = imp_Si - imp_S
+                weight = (fact[len(S)] * fact[n - len(S) - 1]) / denom
+                acc[ids[i]] += weight * marginal
     return acc
 
-def main(input_csv, T, output_csv, num_samples=100):
+def main(input_csv, T, output_csv):
     # 1. Start Spark Session
     # Add configuration to handle JDK 17+ incompatibility with Hadoop's UserGroupInformation
     # Set a simple HADOOP user for local runs to avoid UGI issues
@@ -116,9 +128,9 @@ def main(input_csv, T, output_csv, num_samples=100):
     ids = [str(row[id_col_name]) for row in collected_rows]
     vectors = [np.array(row[1:], dtype=float) for row in collected_rows]
 
-    # 4. Run Shapley value estimation (runs on the Driver)
-    print(f"Starting Shapley estimation with {num_samples} samples...")
-    scores = approximate_shapley(vectors, ids, num_samples=int(num_samples))
+    # 4. Run exact Shapley value estimation (runs on the Driver)
+    print("Starting exact Shapley estimation (exact enumeration)...")
+    scores = exact_shapley(vectors, ids)
 
     # 5. Select top T items by score
     sorted_ids = sorted(scores.items(), key=lambda x: x[1], reverse=True)
@@ -143,12 +155,11 @@ def main(input_csv, T, output_csv, num_samples=100):
 
 #%% --- 1. Parameters ---
 # Please set input/output file paths and parameters here
-INPUT_CSV_PATH = "/Users/peggy/Documents/uu_master_data_science/uu_data_intensive_systems_group_project/Data/marketing_campaign_cleaned.csv"
+INPUT_CSV_PATH = "/Users/peggy/Documents/uu_master_data_science/uu_data_intensive_systems_group_project/Data/data_test_10.csv"
 OUTPUT_CSV_PATH = "/Users/peggy/Documents/uu_master_data_science/uu_data_intensive_systems_group_project/Data/method3_output.csv"
-T_VALUE = 20  # 要選取的頂部資料筆數
-NUM_SAMPLES = 10  # Shapley 估計的取樣次數
+T_VALUE = 4  # 要選取的頂部資料筆數
 
 #%% --- 2. Run main script ---
 print("Starting Shapley value computation...")
-main(INPUT_CSV_PATH, T_VALUE, OUTPUT_CSV_PATH, NUM_SAMPLES)
+main(INPUT_CSV_PATH, T_VALUE, OUTPUT_CSV_PATH)
 print("Program finished.")
