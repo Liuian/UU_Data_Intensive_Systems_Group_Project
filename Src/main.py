@@ -40,6 +40,7 @@ def experiments():
                     max_conditions=c
                 )
 
+                #TODO: fix top t with datasets size 
                 for T in t_values:
                     base_name = os.path.basename(dataset).split('.')[0]
                     # Some code to measure our parameters
@@ -58,5 +59,10 @@ def testMethod1(file_path):
                 )
     method1(spark, file_path, 100, "../Results/m1_test.csv", load_queries(queries))
     spark.stop()
-    method2("../Data/tmp_small.csv", 30, "../Results/tmp_m2_small.csv", load_queries("../Data/queries.txt"))
 
+def testMethod2(file_path):method2("../Data/tmp_small.csv", 30, "../Results/tmp_m2_small.csv", load_queries("../Data/queries.txt"))
+
+if __name__ == "__main__":
+    # experiments()
+    testMethod1("./Data/marketing_campaign_cleaned.csv")
+    #testMethod2("../Data/tmp_small.csv")

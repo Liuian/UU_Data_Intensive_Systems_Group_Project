@@ -1,0 +1,20 @@
+NumStorePurchases <= 10
+AcceptedCmp2 < 1 OR MntGoldProds > 63
+NumStorePurchases = 7
+Year_Birth > 1963 OR NumStorePurchases < 9
+ID < 10267 AND NumDealsPurchases = 2 AND Income < 500580
+Response < 0
+Z_CostContact > 3 AND NumStorePurchases < 13 AND MntFishProducts <= 188
+NumWebPurchases = 17
+Income < 516237
+Income > 71985
+MntWines < 1295 OR NumDealsPurchases > 4
+Year_Birth < 1990 AND Kidhome >= 0 AND MntFruits < 194
+NumWebVisitsMonth >= 2 OR NumStorePurchases = 4 OR MntGoldProds < 349
+AcceptedCmp4 <= 0 AND MntFishProducts >= 59 AND Teenhome = 2
+NumDealsPurchases = 1
+MntGoldProds > 66
+MntMeatProducts <= 1307 AND Recency > 1 AND NumDealsPurchases > 1
+NumStorePurchases < 10 OR NumDealsPurchases > 3
+NumWebPurchases < 22 OR Recency > 4 OR Complain = 1
+Recency < 79
