@@ -2,6 +2,7 @@ import os
 from data_generator import create_subsets
 from query_generator import generate_queries_weighted
 from method1 import method1
+from method2 import method2
 from pyspark.sql import SparkSession
 
 
@@ -57,4 +58,5 @@ def testMethod1(file_path):
                 )
     method1(spark, file_path, 100, "../Results/m1_test.csv", load_queries(queries))
     spark.stop()
+    method2("../Data/tmp_small.csv", 30, "../Results/tmp_m2_small.csv", load_queries("../Data/queries.txt"))
 
