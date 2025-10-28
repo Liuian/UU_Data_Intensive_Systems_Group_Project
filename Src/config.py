@@ -1,6 +1,6 @@
 FILE_PATH = "./Data/marketing_campaign_cleaned.csv"
 
-# Define experiment parameter grid
+# for testing only, small size
 RESULTS_PATH = "./Results/experiments_results.csv"
 REP_RANGE = 2 # 5
 QUERIES_NUM_LIST = [50] # [50, 200]

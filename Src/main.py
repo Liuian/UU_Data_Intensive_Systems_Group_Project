@@ -70,7 +70,8 @@ def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATA
                         spark=spark,
                         csv_file_path=dataset,
                         num_queries=qnum,
-                        max_conditions=cond
+                        max_conditions=cond,
+                        seed=seed
                     )
                     queries = load_queries(queries_file)
 

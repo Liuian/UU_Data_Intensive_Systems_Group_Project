@@ -152,7 +152,7 @@ def create_subsets(small=100, medium=500, large=2000, input_file=""):
 
     return created_files
 
-def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions):
+def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions, seed=None):
     """
         Generate queries with weighted selection 
         (70% important, 25% second tier, 5% unimportant)
@@ -169,6 +169,9 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions)
     unimportant_columns = ['AcceptedCmp1', 'AcceptedCmp2', 'AcceptedCmp3', 'AcceptedCmp4', 'AcceptedCmp5', 'Response', 'ID', 'Dt_Customer', 'MntWines', 'Z_CostContact', 'Z_Revenue']
 
     
+    # Optional deterministic RNG: if seed is provided, use a local Random instance
+    rng = random if seed is None else random.Random(seed)
+
     # Get all numeric columns from the dataset for fallback
     all_numeric_columns = [col_name for col_name, dtype in df.dtypes if dtype in ['int', 'bigint', 'double', 'float']]
     
@@ -201,7 +204,7 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions)
 
     queries = []
     for i in range(num_queries):
-        num_conditions = random.randint(1, max_conditions)
+        num_conditions = rng.randint(1, max_conditions)
         conditions = []
         selected_columns = []
 
@@ -211,25 +214,25 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions)
             if len(current_available) == 0:
                 break
                 
-            rand_val = random.random()
+            rand_val = rng.random()
             if rand_val < 0.50:  # 50% chance for important columns
                 available_important = [col for col in current_available if col in important_columns]
                 if available_important:
-                    chosen_col = random.choice(available_important)
+                    chosen_col = rng.choice(available_important)
                 else:
-                    chosen_col = random.choice(current_available)
+                    chosen_col = rng.choice(current_available)
             elif rand_val < 0.85:  # 35% chance for second tier columns (50 + 35 = 85)
                 available_second = [col for col in current_available if col in second_tier_columns]
                 if available_second:
-                    chosen_col = random.choice(available_second)
+                    chosen_col = rng.choice(available_second)
                 else:
-                    chosen_col = random.choice(current_available)
+                    chosen_col = rng.choice(current_available)
             else:  # 5% chance for unimportant columns
                 available_unimportant = [col for col in current_available if col in unimportant_columns]
                 if available_unimportant:
-                    chosen_col = random.choice(available_unimportant)
+                    chosen_col = rng.choice(available_unimportant)
                 else:
-                    chosen_col = random.choice(current_available)
+                    chosen_col = rng.choice(current_available)
             
             selected_columns.append(chosen_col)
             # Remove the chosen column to prevent duplicates
@@ -237,7 +240,7 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions)
 
         # Choose operator when multiple conditions
         if num_conditions > 1:
-            logical_op = random.choices(logical_operators, weights=logical_weights)[0]
+            logical_op = rng.choices(logical_operators, weights=logical_weights)[0]
         else:
             logical_op = None
 
@@ -247,31 +250,31 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions)
                 min_val, max_val = numeric_ranges[col_name]
 
                 # Choose comparison operator
-                comp_op = random.choices(comparison_operators, weights=comparison_weights)[0]
+                comp_op = rng.choices(comparison_operators, weights=comparison_weights)[0]
 
                 # Generate appropriate value based on operator
                 if comp_op == '=':
-                    value = random.randint(int(min_val), int(max_val))
+                    value = rng.randint(int(min_val), int(max_val))
                 elif comp_op in ['>', '>=']:
                     # For greater than, pick value in lower range
                     threshold = int((min_val + max_val) * 0.3)
                     upper_bound = threshold if threshold < int(max_val) else int(max_val)
                     lower_bound = int(min_val)
                     if lower_bound <= upper_bound:
-                        value = random.randint(lower_bound, upper_bound)
+                        value = rng.randint(lower_bound, upper_bound)
                     else:
-                        value = random.randint(int(min_val), int(max_val))
+                        value = rng.randint(int(min_val), int(max_val))
                 elif comp_op in ['<', '<=']:
                     # For less than, pick value in upper range
                     threshold = int((min_val + max_val) * 0.7)
                     lower_bound = threshold if threshold > int(min_val) else int(min_val)
                     upper_bound = int(max_val)
                     if lower_bound <= upper_bound:
-                        value = random.randint(lower_bound, upper_bound)
+                        value = rng.randint(lower_bound, upper_bound)
                     else:
-                        value = random.randint(int(min_val), int(max_val))
+                        value = rng.randint(int(min_val), int(max_val))
                 else:
-                    value = random.randint(int(min_val), int(max_val))
+                    value = rng.randint(int(min_val), int(max_val))
 
                 # Build condition string
                 condition = f"{col_name} {comp_op} {value}"
