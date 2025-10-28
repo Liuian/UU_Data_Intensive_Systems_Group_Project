@@ -15,8 +15,7 @@ def load_queries(queries_file):
     print(f"Loaded {len(queries)} queries from {queries_file}")
     return queries
 
-
-def experiments():
+def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATASET_SIZE_T_VALUES, METHODS_TO_RUN, SUBSET_SIZES):
     # Create subsets if the main dataset exists
     # Use full dataset path provided by user
     if not os.path.exists(FILE_PATH):
@@ -24,7 +23,7 @@ def experiments():
         return
 
     # create_subsets
-    subset_list = create_subsets(small=5, medium=10, large=20, input_file=FILE_PATH)
+    subset_list = create_subsets(small=SUBSET_SIZES[0], medium=SUBSET_SIZES[1], large=SUBSET_SIZES[2], input_file=FILE_PATH)
     if not subset_list:
         print("No subset files created. Aborting.")
         return
@@ -142,4 +141,6 @@ def experiments():
     print(f"Experiments finished. Results written to {RESULTS_PATH}")
 
 if __name__ == "__main__":
-    experiments()
+    experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATASET_SIZE_T_VALUES, METHODS_TO_RUN, SUBSET_SIZES)
+    # experiments(EXP1_RESULTS_PATH, EXP1_REP_RANGE, EXP1_QUERIES_NUM_LIST, EXP1_CONDITIONS_LIST, EXP1_DATASET_SIZE_T_VALUES,EXP1_METHODS_TO_RUN, EXP1_SUBSET_SIZES)
+    # experiments(EXP2_RESULTS_PATH, EXP2_REP_RANGE, EXP2_QUERIES_NUM_LIST, EXP2_CONDITIONS_LIST, EXP2_DATASET_SIZE_T_VALUES,EXP2_METHODS_TO_RUN, EXP2_SUBSET_SIZES)
