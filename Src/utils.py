@@ -4,6 +4,11 @@ import numpy as np
 import pandas as pd
 from pyspark.sql.functions import col, min, max
 
+def output_file_name(input_file_path, output_prefix, suffix):
+    base_name = os.path.splitext(os.path.basename(input_file_path))[0]
+    output_file = os.path.join(output_prefix, f"{base_name}_{suffix}")
+    return output_file
+
 def compute_diversity_from_avg_pairwise_cosine(vecs):
     """Compute average pairwise cosine similarity for rows in vecs.
     Returns 1.0 for single-item input, None for empty input.
@@ -289,9 +294,7 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions,
         queries.append(query)
 
     # Save queries to file
-    base_name = os.path.splitext(os.path.basename(csv_file_path))[0]
-    queries_dir = os.path.dirname(csv_file_path)
-    queries_file = os.path.join(queries_dir, f"{base_name}_queries.txt")
+    queries_file = output_file_name(csv_file_path, csv_file_path, "queries.txt")
     with open(queries_file, "w") as file:
         file.write("\n".join(queries))
 
@@ -299,3 +302,12 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions,
     print(f"Weight distribution: 70% important, 25% second tier, 5% unimportant")
     
     return queries_file
+
+
+
+# Load queries from text file
+def load_queries(queries_file):
+    with open(queries_file, 'r') as file:
+        queries = [line.strip() for line in file if line.strip()]
+    print(f"Loaded {len(queries)} queries from {queries_file}")
+    return queries
