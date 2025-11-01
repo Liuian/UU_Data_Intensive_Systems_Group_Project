@@ -9,31 +9,7 @@ def output_file_name(input_file_path, output_prefix, suffix):
     output_file = os.path.join(output_prefix, f"{base_name}_{suffix}")
     return output_file
 
-def compute_diversity_from_avg_pairwise_cosine(vecs):
-    """Compute average pairwise cosine similarity for rows in vecs.
-    Returns 1.0 for single-item input, None for empty input.
-    """
-    if vecs is None or len(vecs) == 0:
-        return None
-    m = len(vecs)
-    if m == 1:
-        return 1.0
-    pair_sims = []
-    for i in range(m):
-        for j in range(i + 1, m):
-            a = vecs[i]
-            b = vecs[j]
-            na = np.linalg.norm(a)
-            nb = np.linalg.norm(b)
-            if na == 0 or nb == 0:
-                s = 0.0
-            else:
-                s = float(np.dot(a, b) / (na * nb))
-            pair_sims.append(s)
-    diversity = 1.0 - float(np.mean(pair_sims))
-
-    return diversity
-
+#-------------Query Handling functions-----------------
 def parse_condition_part(condition_part):
     """
     Parse a single condition part into a Spark condition
@@ -100,62 +76,6 @@ def parse_query_to_condition(query):
         raise ValueError(f"Failed to parse query: {query}. Error: {e}")
 
     return None
-
-def create_subsets(small=100, medium=500, large=2000, input_file=""):
-    """
-    Create three subset CSVs from the provided input CSV.
-
-    Output files are written into the same directory as `input_file` (so they
-    live next to the source dataset). This avoids hardcoded ../Data paths and
-    makes the function robust to different working directories.
-    """
-    # Validate input path
-    if not input_file:
-        print("Error: input_file not provided to create_subsets()")
-        return
-    if not os.path.exists(input_file):
-        print(f"Error: {input_file} not found!")
-        return
-
-    # Read the CSV file
-    df = pd.read_csv(input_file)
-    print(f"Loaded {len(df)} rows from {input_file}")
-
-    # Create subsets
-    subsets = [
-        ("small", small),
-        ("medium", medium), 
-        ("large", large)
-    ]
-    
-    created_files = []
-    
-    # Place subset files in the same folder as the input file
-    input_dir = os.path.dirname(os.path.abspath(input_file)) or "."
-
-    for size_name, sample_size in subsets:
-        # Skip if sample size is larger than dataset
-        if sample_size > len(df):
-            print(f"Skipping {size_name}: sample size {sample_size} > dataset size {len(df)}")
-            continue
-        # Create output filename next to the input file
-        output_dir = input_dir
-        os.makedirs(output_dir, exist_ok=True)
-        output_file = os.path.join(output_dir, f"{sample_size}.csv")
-
-        # Create random sample
-        sample_df = df.sample(n=sample_size, random_state=42)
-
-        # Save to CSV (ensure parent directory exists)
-        sample_df.to_csv(output_file, index=False)
-        created_files.append(output_file)
-        print(f"Created {output_file} with {len(sample_df)} rows")
-
-    print(f"\nCreated {len(created_files)} subset files:")
-    for file in created_files:
-        print(f"{file}")
-
-    return created_files
 
 def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions, seed=None):
     """
@@ -311,3 +231,160 @@ def load_queries(queries_file):
         queries = [line.strip() for line in file if line.strip()]
     print(f"Loaded {len(queries)} queries from {queries_file}")
     return queries
+
+#=============Dataset subset creation===============
+def create_subsets(small=100, medium=500, large=2000, input_file=""):
+    """
+    Create three subset CSVs from the provided input CSV.
+
+    Output files are written into the same directory as `input_file` (so they
+    live next to the source dataset). This avoids hardcoded ../Data paths and
+    makes the function robust to different working directories.
+    """
+    # Validate input path
+    if not input_file:
+        print("Error: input_file not provided to create_subsets()")
+        return
+    if not os.path.exists(input_file):
+        print(f"Error: {input_file} not found!")
+        return
+
+    # Read the CSV file
+    df = pd.read_csv(input_file)
+    print(f"Loaded {len(df)} rows from {input_file}")
+
+    # Create subsets
+    subsets = [
+        ("small", small),
+        ("medium", medium), 
+        ("large", large)
+    ]
+    
+    created_files = []
+    
+    # Place subset files in the same folder as the input file
+    input_dir = os.path.dirname(os.path.abspath(input_file)) or "."
+
+    for size_name, sample_size in subsets:
+        # Skip if sample size is larger than dataset
+        if sample_size > len(df):
+            print(f"Skipping {size_name}: sample size {sample_size} > dataset size {len(df)}")
+            continue
+        # Create output filename next to the input file
+        output_dir = input_dir
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, f"{sample_size}.csv")
+
+        # Create random sample
+        sample_df = df.sample(n=sample_size, random_state=42)
+
+        # Save to CSV (ensure parent directory exists)
+        sample_df.to_csv(output_file, index=False)
+        created_files.append(output_file)
+        print(f"Created {output_file} with {len(sample_df)} rows")
+
+    print(f"\nCreated {len(created_files)} subset files:")
+    for file in created_files:
+        print(f"{file}")
+
+    return created_files
+
+
+
+#=============Metrics calculation functions===============
+def compute_diversity_from_avg_pairwise_cosine(vecs):
+    """Compute average pairwise cosine similarity for rows in vecs.
+    Returns 1.0 for single-item input, None for empty input.
+    """
+    if vecs is None or len(vecs) == 0:
+        return None
+    m = len(vecs)
+    if m == 1:
+        return 1.0
+    pair_sims = []
+    for i in range(m):
+        for j in range(i + 1, m):
+            a = vecs[i]
+            b = vecs[j]
+            na = np.linalg.norm(a)
+            nb = np.linalg.norm(b)
+            if na == 0 or nb == 0:
+                s = 0.0
+            else:
+                s = float(np.dot(a, b) / (na * nb))
+            pair_sims.append(s)
+    diversity = 1.0 - float(np.mean(pair_sims))
+    return diversity
+
+def compute_query_coverage(spark, top_tuples_df, queries):
+    """
+    Compute query coverage: fraction of provided queries that match at least one row in top_tuples_df
+    """
+    if not queries or len(queries) == 0:
+        return 0.0
+    matched_count = 0
+    try:
+        cached_df = top_tuples_df.cache()
+        for query in queries:
+            try:
+                # FIX: Extract just the query string if it's a tuple
+                query_str = query[1] if isinstance(query, tuple) else query
+                condition = parse_query_to_condition(query_str)
+                if condition is not None:
+                    if cached_df.filter(condition).first() is not None:
+                        matched_count += 1
+            except Exception:
+                continue 
+        cached_df.unpersist()
+        return matched_count / len(queries)
+    
+    except Exception as e:
+        print(f"Failed to compute query coverage: {e}")
+        return None
+    
+def cosine_similarity(a, b):
+    na = np.linalg.norm(a)
+    nb = np.linalg.norm(b)
+    if na == 0 or nb == 0:
+        return 0.0
+    return float(np.dot(a, b) / (na * nb))
+
+def imp_of_set(vectors):
+    if len(vectors) == 0:
+        return 0.0
+    centroid = np.mean(vectors, axis=0)
+    sims = [cosine_similarity(v, centroid) for v in vectors]
+    dissimilarities = [1.0 - s for s in sims]
+    return float(np.mean(dissimilarities))
+
+def compute_imp_div(top_tuples_df, data_col_names):
+    """
+    Compute importance and diversity metrics from top tuples DataFrame.
+    """
+    imp_R = None
+    diversity = None
+    
+    try:
+        collected_top = top_tuples_df.collect()
+        vecs = []
+        if collected_top:
+            for r in collected_top:
+                try:
+                    vals = [float(r[c]) if r[c] is not None else 0.0 for c in data_col_names]
+                    vecs.append(np.array(vals, dtype=float))
+                except Exception:
+                    continue
+        # FIX: Check if we have vectors before computing metrics
+        if len(vecs) > 0:
+            imp_R = imp_of_set(vecs)
+            diversity = compute_diversity_from_avg_pairwise_cosine(vecs)
+        else:
+            imp_R = 0.0
+            diversity = 0.0
+    except Exception as e:
+        print(f"Failed to compute metrics: {e}")
+        imp_R = None
+        diversity = None
+        
+    return imp_R, diversity
+
