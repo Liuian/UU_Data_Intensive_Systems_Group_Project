@@ -3,6 +3,7 @@ from pyspark.sql.functions import col, lit, when
 from pyspark.sql.types import DoubleType
 import sys
 import math
+from method1 import pop_method1
 
 def tuple_similarity(row1, row2):
     """
@@ -27,46 +28,24 @@ def method2(input_file, T, output_file, queries):
    
     df = spark.read.csv(input_file, header=True, inferSchema=True)
 
-    
-    df = df.withColumn("popularity", lit(0))
+    # Compute popularity using method1 (based on total hits)
+    df_with_popularity = pop_method1(df, queries)
 
-    
-    for query in queries:
-        try:
-            condition = None
-            for part in query.split(" AND "):
-                col_name, value = part.split(" = ")
-                col_name = col_name.strip()
-                value = int(value.strip())
-
-                if condition is None:
-                    condition = (col(col_name) == value)
-                else:
-                    condition = condition & (col(col_name) == value)
-
-            if condition is not None:
-                df = df.withColumn(
-                    "popularity",
-                    when(condition, col("popularity") + 1).otherwise(col("popularity"))
-                )
-        except:
-            continue
-
-    
-    data = df.collect()
+    # Collect data to driver for similarity computations
+    data = df_with_popularity.collect()
     num_rows = len(data)
-    sim_matrix = [[0.0 for _ in range(num_rows)] for _ in range(num_rows)]
 
-    
+    # Build similarity matrix
+    sim_matrix = [[0.0 for _ in range(num_rows)] for _ in range(num_rows)]   
     for i in range(num_rows):
         for j in range(i + 1, num_rows):
             s = tuple_similarity(data[i], data[j])
             sim_matrix[i][j] = sim_matrix[j][i] = s
 
-    
+    # Compute importance values
     importance_values = []
     for i in range(num_rows):
-        pop = data[i]["popularity"]
+        pop = data[i]["total_hits"]
         if pop == 0:
             importance_values.append(0)
             continue
@@ -74,20 +53,21 @@ def method2(input_file, T, output_file, queries):
         imp = pop * avg_diff
         importance_values.append(imp)
 
+    # Add importance column back to DataFrame
+    df_with_importance = df_with_popularity.withColumn("importance", lit(0.0).cast(DoubleType()))
     
-    df = df.withColumn("importance", lit(0.0).cast(DoubleType()))
     for idx, imp in enumerate(importance_values):
-        df = df.withColumn(
+        df_with_importance = df_with_importance.withColumn(
             "importance",
             when(
-                (col(df.columns[0]) == data[idx][0]),  # simple ID match
+                (col(df_with_importance.columns[0]) == data[idx][0]),  # simple ID match
                 lit(imp)
             ).otherwise(col("importance"))
         )
 
-    # --- Select top T tuples ---
-    top_tuples = df.orderBy(col("importance").desc()).limit(T)
-    top_tuples.drop("popularity", "importance").write.csv(output_file, header=True)
+    # Select top T tuples
+    top_tuples = df_with_importance.orderBy(col("importance").desc()).limit(T)
+    top_tuples.drop("total_hits", "importance").write.csv(output_file, header=True, mode='overwrite')
 
     print(f"Saved top {T} tuples to {output_file}")
     spark.stop()

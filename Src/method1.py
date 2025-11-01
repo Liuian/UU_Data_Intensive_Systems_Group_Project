@@ -36,6 +36,7 @@ def method1(spark, input_file, T, output_file, queries):
     df_topT = pop_method1(df, queries).limit(T)
 
     end_time = time.time()
+    
     # Save to CSV
     df_topT.write.csv(output_file, header=True, mode='overwrite')
     
