@@ -314,6 +314,39 @@ def compute_diversity_from_avg_pairwise_cosine(vecs):
             pair_sims.append(s)
     diversity = 1.0 - float(np.mean(pair_sims))
     return diversity
+    
+def cosine_similarity(a, b):
+    na = np.linalg.norm(a)
+    nb = np.linalg.norm(b)
+    if na == 0 or nb == 0:
+        return 0.0
+    return float(np.dot(a, b) / (na * nb))
+
+def compute_diversity(top_tuples_df, data_col_names):
+    """
+    Compute diversity metrics from top tuples DataFrame.
+    """
+    diversity = None
+    
+    try:
+        collected_top = top_tuples_df.collect()
+        vecs = []
+        if collected_top:
+            for r in collected_top:
+                try:
+                    vals = [float(r[c]) if r[c] is not None else 0.0 for c in data_col_names]
+                    vecs.append(np.array(vals, dtype=float))
+                except Exception:
+                    continue
+        # Check if we have vectors before computing metrics
+        if len(vecs) > 0:
+            diversity = compute_diversity_from_avg_pairwise_cosine(vecs)
+        else:
+            diversity = 0.0
+    except Exception as e:
+        print(f"Failed to compute metrics: {e}")
+        diversity = None
+    return diversity
 
 def compute_query_coverage(spark, top_tuples_df, queries):
     """
@@ -340,46 +373,4 @@ def compute_query_coverage(spark, top_tuples_df, queries):
     except Exception as e:
         print(f"Failed to compute query coverage: {e}")
         return None
-    
-def cosine_similarity(a, b):
-    na = np.linalg.norm(a)
-    nb = np.linalg.norm(b)
-    if na == 0 or nb == 0:
-        return 0.0
-    return float(np.dot(a, b) / (na * nb))
-
-def imp_of_set(vectors):
-    if len(vectors) == 0:
-        return 0.0
-    centroid = np.mean(vectors, axis=0)
-    sims = [cosine_similarity(v, centroid) for v in vectors]
-    dissimilarities = [1.0 - s for s in sims]
-    return float(np.mean(dissimilarities))
-
-def compute_diversity(top_tuples_df, data_col_names):
-    """
-    Compute diversity metrics from top tuples DataFrame.
-    """
-    diversity = None
-    
-    try:
-        collected_top = top_tuples_df.collect()
-        vecs = []
-        if collected_top:
-            for r in collected_top:
-                try:
-                    vals = [float(r[c]) if r[c] is not None else 0.0 for c in data_col_names]
-                    vecs.append(np.array(vals, dtype=float))
-                except Exception:
-                    continue
-        # Check if we have vectors before computing metrics
-        if len(vecs) > 0:
-            diversity = compute_diversity_from_avg_pairwise_cosine(vecs)
-        else:
-            diversity = 0.0
-    except Exception as e:
-        print(f"Failed to compute metrics: {e}")
-        diversity = None
-        
-    return diversity
 

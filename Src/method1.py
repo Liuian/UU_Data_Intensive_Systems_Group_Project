@@ -28,13 +28,13 @@ def topT_method1(spark, input_file, T, queries):
     df_topT = df_total_hits.orderBy(desc("total_hits")).limit(T)
     total_time = time.time() - start_time
 
-    return df_topT, total_time
+    return df_topT, total_time, df
 
 def method1(spark, input_file, T, output_file, queries):
     # Store original queries for coverage calculation
     original_queries = queries.copy()
 
-    df_topT, total_time = topT_method1(spark, input_file, T, queries)
+    df_topT, total_time, df = topT_method1(spark, input_file, T, queries)
 
     # Save to CSV
     df_topT.write.csv(output_file, header=True, mode='overwrite')
