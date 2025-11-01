@@ -219,8 +219,7 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions,
         file.write("\n".join(queries))
 
     print(f"Generated {len(queries)} queries with weighted column selection")
-    print(f"Weight distribution: 70% important, 25% second tier, 5% unimportant")
-    
+
     return queries_file
 
 
@@ -357,11 +356,10 @@ def imp_of_set(vectors):
     dissimilarities = [1.0 - s for s in sims]
     return float(np.mean(dissimilarities))
 
-def compute_imp_div(top_tuples_df, data_col_names):
+def compute_diversity(top_tuples_df, data_col_names):
     """
-    Compute importance and diversity metrics from top tuples DataFrame.
+    Compute diversity metrics from top tuples DataFrame.
     """
-    imp_R = None
     diversity = None
     
     try:
@@ -374,17 +372,14 @@ def compute_imp_div(top_tuples_df, data_col_names):
                     vecs.append(np.array(vals, dtype=float))
                 except Exception:
                     continue
-        # FIX: Check if we have vectors before computing metrics
+        # Check if we have vectors before computing metrics
         if len(vecs) > 0:
-            imp_R = imp_of_set(vecs)
             diversity = compute_diversity_from_avg_pairwise_cosine(vecs)
         else:
-            imp_R = 0.0
             diversity = 0.0
     except Exception as e:
         print(f"Failed to compute metrics: {e}")
-        imp_R = None
         diversity = None
         
-    return imp_R, diversity
+    return diversity
 

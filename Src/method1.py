@@ -1,18 +1,19 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, when, array, expr, size, desc
-from utils import compute_query_coverage, compute_imp_div
+from utils import compute_query_coverage, compute_diversity
 import time
 
 
+
 def method1(spark, input_file, T, output_file, queries):
+    # Store original queries for coverage calculation
+    original_queries = queries.copy()
+
     start_time = time.time()
 
     # Read input data
     df = spark.read.csv(input_file, header=True, inferSchema=True)
     print(f"Loaded {df.count()} rows")
-
-    # Store original queries for coverage calculation
-    original_queries = queries.copy()
     
     # Assign QID's for every Query
     queries_with_ids = [(qid+1, q) for qid, q in enumerate(queries)]
@@ -36,13 +37,12 @@ def method1(spark, input_file, T, output_file, queries):
     
     # Use original queries (without IDs) for coverage calculation
     query_coverage = compute_query_coverage(spark, df_topT, original_queries)
-    imp_R, diversity = compute_imp_div(df_topT, df.columns)
+    diversity = compute_diversity(df_topT, df.columns)
 
     imp_R2 = df_topT.agg({'total_hits': 'sum'}).collect()[0][0]
-    print(f"Imp_R2 {imp_R2}")
 
     return {
-        'imp_R': imp_R,
+        'imp_R': imp_R2, # Sum of total hits in R'
         'diversity': diversity,
         'runtime': end_time - start_time,
         'query_coverage': query_coverage
