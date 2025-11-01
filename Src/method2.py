@@ -1,9 +1,11 @@
+from time import time
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, when
 from pyspark.sql.types import DoubleType
 import sys
 import math
 from method1 import pop_method1
+from utils import compute_query_coverage, compute_diversity
 
 def tuple_similarity(row1, row2):
     """
@@ -19,13 +21,12 @@ def tuple_similarity(row1, row2):
     return 1 - (diff / max_diff)
 
 
-def method2(input_file, T, output_file, queries):
-    
-    spark = SparkSession.builder \
-        .appName("Method2") \
-        .getOrCreate()
-    
-   
+def method2(spark, input_file, T, output_file, queries):
+    # Store original queries for coverage calculation
+    original_queries = queries.copy()
+    start_time = time.time()
+
+    # Read input data
     df = spark.read.csv(input_file, header=True, inferSchema=True)
 
     # Compute popularity using method1 (based on total hits)
@@ -67,8 +68,21 @@ def method2(input_file, T, output_file, queries):
 
     # Select top T tuples
     top_tuples = df_with_importance.orderBy(col("importance").desc()).limit(T)
+    end_time = time.time()
+    imp_R = top_tuples.agg({'importance': 'sum'}).collect()[0][0]
+    
+    # save to CSV
     top_tuples.drop("total_hits", "importance").write.csv(output_file, header=True, mode='overwrite')
 
-    print(f"Saved top {T} tuples to {output_file}")
-    spark.stop()
+    # Use original queries (without IDs) for coverage calculation
+    query_coverage = compute_query_coverage(spark, top_tuples, original_queries)
+    diversity = compute_diversity(top_tuples, df.columns)
+    
+
+    return {
+        'imp_R': imp_R, 
+        'diversity': diversity,
+        'runtime': end_time - start_time,
+        'query_coverage': query_coverage
+    }
 

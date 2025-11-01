@@ -37,17 +37,20 @@ def method1(spark, input_file, T, output_file, queries):
 
     end_time = time.time()
     
+    # Sum of total hits in R'
+    imp_R = df_topT.agg({'total_hits': 'sum'}).collect()[0][0]
+
     # Save to CSV
-    df_topT.write.csv(output_file, header=True, mode='overwrite')
+    df_topT.drop("total_hits").write.csv(output_file, header=True, mode='overwrite')
     
     # Use original queries (without IDs) for coverage calculation
     query_coverage = compute_query_coverage(spark, df_topT, original_queries)
     diversity = compute_diversity(df_topT, df.columns)
 
-    imp_R2 = df_topT.agg({'total_hits': 'sum'}).collect()[0][0]
+    
 
     return {
-        'imp_R': imp_R2, # Sum of total hits in R'
+        'imp_R': imp_R, 
         'diversity': diversity,
         'runtime': end_time - start_time,
         'query_coverage': query_coverage
