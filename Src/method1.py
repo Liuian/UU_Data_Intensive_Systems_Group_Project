@@ -1,6 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, when
-import sys
+from pyspark.sql.functions import col, lit, when, array, expr, size, desc
 
 def parse_condition_part(condition_part):
     """
@@ -40,17 +39,17 @@ def parse_query_to_condition(query):
                     condition = parse_condition_part(condition_part)
                     if condition is not None:
                         and_condition = condition if and_condition is None else and_condition & condition
-
+                
                 if and_condition is not None:
                     or_conditions.append(and_condition)
-
+            
             # Combine OR conditions
             if or_conditions:
                 condition = or_conditions[0]
                 for or_cond in or_conditions[1:]:
                     condition = condition | or_cond
                 return condition
-
+        
         # Handle AND queries
         elif " AND " in query:
             condition = None
@@ -59,52 +58,38 @@ def parse_query_to_condition(query):
                 if new_condition is not None:
                     condition = new_condition if condition is None else condition & new_condition
             return condition
-
+        
         # Handle single condition
         else:
             return parse_condition_part(query)
-
+    
     except Exception as e:
         raise ValueError(f"Failed to parse query: {query}. Error: {e}")
-
+    
     return None
 
 def method1(spark, input_file, T, output_file, queries):
+
     # Read input data
     df = spark.read.csv(input_file, header=True, inferSchema=True)
     print(f"Loaded {df.count()} rows")
 
-    # Start with popularity = 0
-    df = df.withColumn("popularity", lit(0))
+    # Assign QID's for every Query
+    queries = [(qid+1, q) for qid, q in enumerate(queries)]
 
-    # For each query, increment popularity for matching rows
-    for i, query in enumerate(queries):
-        print(f"Processing query {i+1}: {query}")
-        try:
-            condition = parse_query_to_condition(query)
+    # Compute total hits directly without building arrays
+    total_hits_expr = sum(
+        when(expr(expr_str), lit(1)).otherwise(lit(0))
+        for _, expr_str in queries
+    )
 
-            if condition is not None:
-                matching_count = df.filter(condition).count()
-                print(f"  Rows matching: {matching_count}")
-                df = df.withColumn("popularity",
-                                  when(condition, col("popularity") + 1)
-                                  .otherwise(col("popularity")))
-            else:
-                print(f"  No valid condition found")
+    df_total_hits = df.withColumn("total_hits", total_hits_expr)
 
-        except Exception as e:
-            print(f"Error processing query: {query}. Error: {e}")
-            continue
+    # Select top T rows by total_hits
+    df_topT = df_total_hits.orderBy(desc("total_hits")).limit(T)
 
-    # Show popularity distribution
-    print("\nPopularity distribution:")
-    df.groupBy("popularity").count().orderBy("popularity").show()
-
-    # Select top T tuples by popularity
-    top_tuples = df.orderBy(col("popularity").desc()).limit(T)
-
-    # Save results
-    top_tuples.write.csv(output_file, header=True, mode='overwrite')
+    # Save to CSV with all original columns + total_hits
+    df_topT.write.csv(output_file, header=True, mode='overwrite')
 
     print(f"Saved top {T} tuples to {output_file}")
 
