@@ -29,11 +29,11 @@ def tuple_similarity(row1, row2):
 def method2(input_file, T, output_file, queries):
     start_time = time.time()
     spark = SparkSession.builder.appName("Method2").getOrCreate()
-    print(f"\n🚀 Starting Method 2 on {input_file}\n")
+    print(f"\n Starting Method 2 on {input_file}\n")
 
     # --- Step 1: Load Dataset ---
     df = spark.read.csv(input_file, header=True, inferSchema=True)
-    print(f"✅ Loaded {df.count()} rows and {len(df.columns)} columns.")
+    print(f"Loaded {df.count()} rows and {len(df.columns)} columns.")
 
     # Add initial popularity column
     df = df.withColumn("popularity", lit(0))
@@ -54,7 +54,7 @@ def method2(input_file, T, output_file, queries):
                     when(condition, col("popularity") + 1).otherwise(col("popularity"))
                 )
         except Exception as e:
-            print(f"⚠️ Skipping invalid query '{query}': {e}")
+            print(f" Skipping invalid query '{query}': {e}")
             continue
 
     print("\n📊 Popularity summary:")
@@ -63,7 +63,7 @@ def method2(input_file, T, output_file, queries):
     # --- Step 3: Collect data to driver for similarity calculation ---
     data = df.collect()
     num_rows = len(data)
-    print(f"📦 Computing pairwise similarities for {num_rows} tuples...")
+    print(f" Computing pairwise similarities for {num_rows} tuples...")
 
     sim_matrix = [[0.0 for _ in range(num_rows)] for _ in range(num_rows)]
     for i in range(num_rows):
@@ -91,14 +91,14 @@ def method2(input_file, T, output_file, queries):
     top_tuples = df_final.orderBy(col("importance").desc()).limit(T)
     top_pdf = top_tuples.toPandas()
 
-    print(f"\n🏆 Top {T} tuples by importance:")
+    print(f"\n Top {T} tuples by importance:")
     print(top_pdf.to_string(index=False))
 
     # --- Step 7: Save to CSV ---
     top_tuples.drop("popularity", "importance").write.csv(output_file, header=True, mode="overwrite")
 
     runtime = time.time() - start_time
-    print(f"\n✅ Method 2 completed successfully — results saved to {output_file}")
+    print(f"\n Method 2 completed successfully — results saved to {output_file}")
     print(f"⏱ Runtime: {runtime:.2f} seconds\n")
 
     # --- Step 8: Compute placeholder metrics ---
