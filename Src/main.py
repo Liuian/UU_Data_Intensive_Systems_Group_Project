@@ -5,15 +5,10 @@ from pyspark.sql import SparkSession
 from method1 import method1
 from method2 import method2
 import method3 as method3_module
-from utils import create_subsets, generate_queries_weighted
+from utils import create_subsets, generate_queries_weighted, load_queries
 from config import *
 
-# Load queries from text file
-def load_queries(queries_file):
-    with open(queries_file, 'r') as file:
-        queries = [line.strip() for line in file if line.strip()]
-    print(f"Loaded {len(queries)} queries from {queries_file}")
-    return queries
+
 
 def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATASET_SIZE_T_VALUES, METHODS_TO_RUN, SUBSET_SIZES):
     # Create subsets if the main dataset exists

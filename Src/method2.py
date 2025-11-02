@@ -1,5 +1,11 @@
+from time import time
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, lit, when
+from pyspark.sql.types import DoubleType
+import sys
+import math
+from method1 import pop_method1
+from utils import compute_query_coverage, compute_diversity
 import pandas as pd
 import time
 
@@ -68,7 +74,7 @@ def method2(input_file, T, output_file, queries):
     # --- Step 4: Compute importance for each tuple ---
     importance_values = []
     for i in range(num_rows):
-        pop = data[i]["popularity"]
+        pop = data[i]["total_hits"]
         if pop == 0:
             importance_values.append(0.0)
             continue
