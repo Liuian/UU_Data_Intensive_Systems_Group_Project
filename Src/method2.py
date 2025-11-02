@@ -68,8 +68,6 @@ def method2(spark, input_file, T, output_file, queries):
 
     # Select top T tuples
     top_tuples = df_with_importance.orderBy(col("importance").desc()).limit(T)
-    end_time = time.time()
-    imp_R = top_tuples.agg({'importance': 'sum'}).collect()[0][0]
     
     # save to CSV
     top_tuples.drop("total_hits", "importance").write.csv(output_file, header=True, mode='overwrite')
@@ -78,11 +76,3 @@ def method2(spark, input_file, T, output_file, queries):
     query_coverage = compute_query_coverage(spark, top_tuples, original_queries)
     diversity = compute_diversity(top_tuples, df.columns)
     
-
-    return {
-        'imp_R': imp_R, 
-        'diversity': diversity,
-        'runtime': end_time - start_time,
-        'query_coverage': query_coverage
-    }
-
