@@ -102,11 +102,12 @@ def main(input_csv, T, output_csv, spark, queries):
     # Filter rows in the original DataFrame matching the top IDs
     top_tuples_df = df.join(F.broadcast(top_ids_df), id_col_name, "inner")
 
+    end_time = time.time()
+    runtime = end_time - start_time
+    
     # Write result as a single CSV file
     top_tuples_df.coalesce(1).write.csv(output_csv, header=True, mode="overwrite")
 
-    end_time = time.time()
-    runtime = end_time - start_time
 
     # 7. Compute query coverage: fraction of provided queries that match at least one row in top_tuples_df
     query_coverage = None
