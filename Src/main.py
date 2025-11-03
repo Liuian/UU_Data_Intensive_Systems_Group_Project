@@ -5,10 +5,15 @@ from pyspark.sql import SparkSession
 from method1 import method1
 from method2 import method2
 import method3 as method3_module
-from utils import create_subsets, generate_queries_weighted, load_queries
+from utils import create_subsets, generate_queries_weighted
 from config import *
 
-
+# Load queries from text file
+def load_queries(queries_file):
+    with open(queries_file, 'r') as file:
+        queries = [line.strip() for line in file if line.strip()]
+    print(f"Loaded {len(queries)} queries from {queries_file}")
+    return queries
 
 def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATASET_SIZE_T_VALUES, METHODS_TO_RUN, SUBSET_SIZES):
     # Create subsets if the main dataset exists
@@ -22,7 +27,7 @@ def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATA
     if not subset_list:
         print("No subset files created. Aborting.")
         return
-
+    
     # Prepare results TSV
     os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
     results_columns = [
@@ -76,15 +81,23 @@ def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATA
                         OUT_DIR = f"./Results/m{method_name}_dsize{base_name}_q{qnum}_c{cond}_rep{rep}_seed{seed}"
                         os.makedirs(OUT_DIR, exist_ok=True) # ensure output dir path
 
+                        # ...existing code...
                         try:
                             retval = None
                             runtime = None
+                            # Initialize variables that might be needed in except block
+                            imp_R = None
+                            avg_cos_sim = None
+                            diversity = None
+                            query_coverage = None
+                            
                             if method_name == "1":    # method1
                                 retval = method1(spark, dataset, T_for_size, OUT_DIR, queries)
                             elif method_name == "2":  # method2
-                                retval = method2.method2(dataset, T_for_size, OUT_DIR, queries)
+                                retval = method2(dataset, T_for_size, OUT_DIR, queries)
                             else:   # method3
                                 retval = method3_module.main(dataset, T_for_size, OUT_DIR, spark, queries)
+
                         except Exception as e:
                             print(f"Error running {method_name} on {dataset}: {e}")
                             # record failed row with NaNs
@@ -141,5 +154,5 @@ if __name__ == "__main__":
     experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATASET_SIZE_T_VALUES, METHODS_TO_RUN, SUBSET_SIZES)
     
     # Do these in real experiment
-    # experiments(EXP1_RESULTS_PATH, EXP1_REP_RANGE, EXP1_QUERIES_NUM_LIST, EXP1_CONDITIONS_LIST, EXP1_DATASET_SIZE_T_VALUES,EXP1_METHODS_TO_RUN, EXP1_SUBSET_SIZES)
-    # experiments(EXP2_RESULTS_PATH, EXP2_REP_RANGE, EXP2_QUERIES_NUM_LIST, EXP2_CONDITIONS_LIST, EXP2_DATASET_SIZE_T_VALUES,EXP2_METHODS_TO_RUN, EXP2_SUBSET_SIZES)
+    experiments(EXP1_RESULTS_PATH, EXP1_REP_RANGE, EXP1_QUERIES_NUM_LIST, EXP1_CONDITIONS_LIST, EXP1_DATASET_SIZE_T_VALUES,EXP1_METHODS_TO_RUN, EXP1_SUBSET_SIZES)
+    experiments(EXP2_RESULTS_PATH, EXP2_REP_RANGE, EXP2_QUERIES_NUM_LIST, EXP2_CONDITIONS_LIST, EXP2_DATASET_SIZE_T_VALUES,EXP2_METHODS_TO_RUN, EXP2_SUBSET_SIZES)
