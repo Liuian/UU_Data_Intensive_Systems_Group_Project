@@ -1,3 +1,0 @@
-method,dataset_size,T,queries_num,conditions,seed,runtime_sec,imp_R,diversity,query_coverage
-2,5,1,50,1,203245800,1.292347,0.310545,0.0,0.42
-2,5,1,50,1,1384217893,1.072849,0.338005,0.0,0.52

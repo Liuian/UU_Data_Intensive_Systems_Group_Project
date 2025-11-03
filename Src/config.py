@@ -14,9 +14,9 @@ EXP1_RESULTS_PATH = "./Results/experiments_results_exp1.csv"
 EXP1_REP_RANGE = 5
 EXP1_QUERIES_NUM_LIST = [50, 200]
 EXP1_CONDITIONS_LIST = [1, 3]
-EXP1_DATASET_SIZE_T_VALUES = [(5, 1), (10, 2), (20, 4)]    # (dataset_size, T) pairs   # 
+EXP1_DATASET_SIZE_T_VALUES = [(4, 1), (8, 2), (12, 3)]    # (dataset_size, T) pairs   # 
 EXP1_METHODS_TO_RUN = ["1", "2", "3"]   
-EXP1_SUBSET_SIZES = [5, 10, 12]    
+EXP1_SUBSET_SIZES = [4, 8, 12]    
 
 # Experiment 2: For method 1 and 2
 EXP2_RESULTS_PATH = "./Results/experiments_results_exp2.csv"
