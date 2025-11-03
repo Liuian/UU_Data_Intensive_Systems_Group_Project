@@ -32,7 +32,7 @@ def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATA
     os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
     results_columns = [
         "method", "dataset_size", "T", "queries_num", "conditions", "seed",
-        "runtime_sec", "imp_R", "avg_cosine_sim", "diversity", "query_coverage"
+        "runtime_sec", "imp_R", "diversity", "query_coverage"
     ]
     results_df = pd.DataFrame(columns=results_columns)
 
@@ -87,7 +87,7 @@ def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATA
                             if method_name == "1":    # method1
                                 retval = method1(spark, dataset, T_for_size, OUT_DIR, queries)
                             elif method_name == "2":  # method2
-                                retval = method2.method2(dataset, T_for_size, OUT_DIR, queries)
+                                retval = method2(dataset, T_for_size, OUT_DIR, queries)
                             else:   # method3
                                 retval = method3_module.main(dataset, T_for_size, OUT_DIR, spark, queries)
                         except Exception as e:
@@ -102,7 +102,6 @@ def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATA
                                 "seed": seed,
                                 "runtime_sec": None,
                                 "imp_R": None,
-                                "avg_cosine_sim": None,
                                 "diversity": None,
                                 "query_coverage": query_coverage
                             }
@@ -130,7 +129,6 @@ def experiments(RESULTS_PATH, REP_RANGE, QUERIES_NUM_LIST, CONDITIONS_LIST, DATA
                             "seed": seed,
                             "runtime_sec": runtime,
                             "imp_R": imp_R,
-                            "avg_cosine_sim": avg_cos_sim,
                             "diversity": diversity,
                             "query_coverage": query_coverage
                         }

@@ -299,3 +299,55 @@ def generate_queries_weighted(spark, csv_file_path, num_queries, max_conditions,
     print(f"Weight distribution: 70% important, 25% second tier, 5% unimportant")
     
     return queries_file
+
+def compute_diversity(top_tuples_df, data_col_names):
+    """
+    Compute diversity metrics from top tuples DataFrame.
+    """
+    diversity = None
+    
+    try:
+        collected_top = top_tuples_df.collect()
+        vecs = []
+        if collected_top:
+            for r in collected_top:
+                try:
+                    vals = [float(r[c]) if r[c] is not None else 0.0 for c in data_col_names]
+                    vecs.append(np.array(vals, dtype=float))
+                except Exception:
+                    continue
+        # Check if we have vectors before computing metrics
+        if len(vecs) > 0:
+            diversity = compute_diversity_from_avg_pairwise_cosine(vecs)
+        else:
+            diversity = 0.0
+    except Exception as e:
+        print(f"Failed to compute metrics: {e}")
+        diversity = None
+    return diversity
+
+def compute_query_coverage(spark, top_tuples_df, queries):
+    """
+    Compute query coverage: fraction of provided queries that match at least one row in top_tuples_df
+    """
+    if not queries or len(queries) == 0:
+        return 0.0
+    matched_count = 0
+    try:
+        cached_df = top_tuples_df.cache()
+        for query in queries:
+            try:
+                # FIX: Extract just the query string if it's a tuple
+                query_str = query[1] if isinstance(query, tuple) else query
+                condition = parse_query_to_condition(query_str)
+                if condition is not None:
+                    if cached_df.filter(condition).first() is not None:
+                        matched_count += 1
+            except Exception:
+                continue 
+        cached_df.unpersist()
+        return matched_count / len(queries)
+    
+    except Exception as e:
+        print(f"Failed to compute query coverage: {e}")
+        return None
