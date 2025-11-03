@@ -1,94 +1,105 @@
-# method2.py
+import os
 import time
 import numpy as np
+import pandas as pd
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, lit, when, expr, size, desc
-from utils import compute_query_coverage, compute_diversity
+from pyspark.sql.functions import when, expr, lit
+from utils import compute_query_coverage, compute_diversity_from_avg_pairwise_cosine
 
-def cosine_similarity(a, b):
-    na = np.linalg.norm(a)
-    nb = np.linalg.norm(b)
-    if na == 0 or nb == 0:
-        return 0.0
-    return float(np.dot(a, b) / (na * nb))
 
-def pop_method2(df, queries):
-    """Compute popularity of each tuple (same as method1)."""
-    queries_with_ids = [(qid + 1, q) for qid, q in enumerate(queries)]
-    total_hits_expr = sum(
-        when(expr(expr_str), lit(1)).otherwise(lit(0))
-        for _, expr_str in queries_with_ids
-    )
-    return df.withColumn("popularity", total_hits_expr)
+def safe_numeric_matrix(pdf):
+    """Return numeric NumPy matrix & list of numeric columns."""
+    numeric_cols = pdf.select_dtypes(include=[np.number]).columns.tolist()
+    if len(numeric_cols) == 0:
+        for c in pdf.columns:
+            pdf[c] = pd.to_numeric(pdf[c], errors="coerce")
+        numeric_cols = pdf.select_dtypes(include=[np.number]).columns.tolist()
+    if len(numeric_cols) == 0:
+        return np.zeros((len(pdf), 1)), []
+    mat = pdf[numeric_cols].fillna(0).astype(float).to_numpy()
+    return mat, numeric_cols
 
-def method2(input_file, T, output_file, queries):
-    start_time = time.time()
 
-    # Initialize Spark locally
-    spark = SparkSession.builder.master("local[*]").appName("Method2").getOrCreate()
+def pop_method2(spark, df, queries):
+    """Compute popularity × dissimilarity importance."""
+    total_hits_expr = sum(when(expr(q), lit(1)).otherwise(lit(0)) for q in queries)
+    df_pop = df.withColumn("popularity", total_hits_expr)
+    pdf = df_pop.toPandas()
 
-    # 1. Read CSV
+    mat, numeric_cols = safe_numeric_matrix(pdf)
+    if len(pdf) == 0:
+        pdf["importance"] = 0.0
+        return pdf, numeric_cols
+
+    try:
+        norms = np.linalg.norm(mat, axis=1, keepdims=True)
+        norms[norms == 0] = 1e-10
+        sim_matrix = np.dot(mat, mat.T) / (norms @ norms.T)
+        sim_matrix = np.clip(sim_matrix, -1, 1)
+        dissim_matrix = 1 - sim_matrix
+        avg_dissim = dissim_matrix.mean(axis=1)
+        pdf["importance"] = pdf["popularity"].astype(float) * avg_dissim
+    except Exception as e:
+        print("[Method2] Similarity failed:", e)
+        pdf["importance"] = pdf["popularity"]
+
+    return pdf, numeric_cols
+
+
+def method2(input_file, T, output_dir, queries):
+    """Popularity × dissimilarity weighting — safe, consistent with Method 1 & 3."""
+    spark = SparkSession.builder.getOrCreate()
+    start = time.time()
+
+    # ---------- Load data ----------
     df = spark.read.csv(input_file, header=True, inferSchema=True)
+    pdf, numeric_cols = pop_method2(spark, df, queries)
 
-    # 2. Compute popularity for each tuple
-    df_pop = pop_method2(df, queries)
-    data_cols = [c for c in df.columns]
+    # ---------- Compute imp_R ----------
+    try:
+        pdf_sorted = pdf.sort_values(by="importance", ascending=False)
+        topT = pdf_sorted.head(T)
+        total_imp = float(pdf_sorted["importance"].sum())
+        top_imp = float(topT["importance"].sum())
+        imp_R = top_imp / total_imp if total_imp != 0 else 0.0
+    except Exception as e:
+        print("[Method2] Importance calc failed:", e)
+        imp_R = 0.0
+        topT = pdf.head(T)
 
-    # 3. Collect to driver for pairwise computations
-    rows = df_pop.collect()
-    vectors = []
-    pops = []
-    for r in rows:
-        try:
-            vec = np.array([float(r[c]) if r[c] is not None else 0.0 for c in data_cols])
-            vectors.append(vec)
-            pops.append(float(r["popularity"]))
-        except Exception:
-            continue
+    runtime = time.time() - start
 
-    # 4. Compute pairwise similarities (symmetric matrix)
-    n = len(vectors)
-    sim = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i + 1, n):
-            s = cosine_similarity(vectors[i], vectors[j])
-            sim[i, j] = s
-            sim[j, i] = s
+    # ---------- Save output ----------
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        out_csv = os.path.join(output_dir, "topT.csv")
+        topT.drop(columns=["importance", "popularity"], errors="ignore").to_csv(out_csv, index=False)
+    except Exception as e:
+        print("[Method2] Save failed:", e)
 
-    # 5. Compute weighted importance: pop(t) * average(1 - sim(t, others))
-    importance = []
-    for i in range(n):
-        if n > 1:
-            avg_diff = np.mean(1 - sim[i, :])
+    # ---------- Diversity ----------
+    try:
+        if len(numeric_cols) > 0 and len(topT) > 1:
+            diversity = float(compute_diversity_from_avg_pairwise_cosine(topT[numeric_cols].to_numpy()))
         else:
-            avg_diff = 1.0
-        imp_t = pops[i] * avg_diff
-        importance.append(imp_t)
+            diversity = 0.0
+    except Exception as e:
+        print("[Method2] Diversity failed:", e)
+        diversity = 0.0
 
-    # 6. Rank tuples by importance
-    idx_sorted = np.argsort(importance)[::-1]
-    top_idx = idx_sorted[:T]
+    # ---------- Query coverage ----------
+    try:
+        spark_topT = spark.createDataFrame(topT)
+        query_coverage = float(compute_query_coverage(spark, spark_topT, queries))
+    except Exception as e:
+        print("[Method2] Coverage failed:", e)
+        query_coverage = 0.0
 
-    # Build top-T DataFrame
-    top_ids = [rows[i][0] for i in top_idx]  # assuming first col is ID
-    top_ids_df = spark.createDataFrame([(i,) for i in top_ids], [df.columns[0]])
-    df_topT = df.join(top_ids_df, df.columns[0], "inner")
-
-    # 7. Compute metrics
-    imp_R = np.sum(importance[top_idx]) / np.sum(importance)
-    query_coverage = compute_query_coverage(spark, df_topT, queries)
-    diversity = compute_diversity(df_topT, df.columns)
-
-    runtime = time.time() - start_time
-
-    # 8. Save top-T
-    df_topT.write.csv(output_file, header=True, mode="overwrite")
-
-    spark.stop()
+    print(f"[Method2] Done: runtime={runtime:.4f}s imp_R={imp_R:.4f} div={diversity:.4f} cov={query_coverage:.4f}")
 
     return {
-        "imp_R": imp_R,
-        "diversity": diversity,
-        "runtime": runtime,
-        "query_coverage": query_coverage
+        "imp_R": round(imp_R, 6),
+        "diversity": round(diversity, 6),
+        "runtime": round(runtime, 6),
+        "query_coverage": round(query_coverage, 6)
     }
