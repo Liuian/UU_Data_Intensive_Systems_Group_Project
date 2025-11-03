@@ -10,7 +10,7 @@ import pandas as pd
 import time
 
 
-# ------------------ Helper: Tuple Similarity ------------------ #
+
 def tuple_similarity(row1, row2):
     """
     Compute similarity between two tuples based on normalized L1 distance.
@@ -25,20 +25,20 @@ def tuple_similarity(row1, row2):
     return 1 - (diff / max_diff)
 
 
-# ------------------ Method 2 Implementation ------------------ #
+
 def method2(input_file, T, output_file, queries):
     start_time = time.time()
     spark = SparkSession.builder.appName("Method2").getOrCreate()
     print(f"\n Starting Method 2 on {input_file}\n")
 
-    # --- Step 1: Load Dataset ---
+   
     df = spark.read.csv(input_file, header=True, inferSchema=True)
     print(f"Loaded {df.count()} rows and {len(df.columns)} columns.")
 
-    # Add initial popularity column
+    
     df = df.withColumn("popularity", lit(0))
 
-    # --- Step 2: Compute popularity like Method 1 ---
+    
     for query in queries:
         try:
             condition = None
@@ -57,10 +57,10 @@ def method2(input_file, T, output_file, queries):
             print(f" Skipping invalid query '{query}': {e}")
             continue
 
-    print("\n📊 Popularity summary:")
+    print("\n Popularity summary:")
     df.groupBy("popularity").count().show()
 
-    # --- Step 3: Collect data to driver for similarity calculation ---
+    
     data = df.collect()
     num_rows = len(data)
     print(f" Computing pairwise similarities for {num_rows} tuples...")
@@ -71,7 +71,7 @@ def method2(input_file, T, output_file, queries):
             s = tuple_similarity(data[i], data[j])
             sim_matrix[i][j] = sim_matrix[j][i] = s
 
-    # --- Step 4: Compute importance for each tuple ---
+    
     importance_values = []
     for i in range(num_rows):
         pop = data[i]["total_hits"]
@@ -82,33 +82,33 @@ def method2(input_file, T, output_file, queries):
         imp = pop * avg_diff
         importance_values.append(float(imp))
 
-    # --- Step 5: Merge importance values back into DataFrame ---
+    
     pdf = df.toPandas()
     pdf["importance"] = importance_values
     df_final = spark.createDataFrame(pdf)
 
-    # --- Step 6: Select top T tuples ---
+    
     top_tuples = df_final.orderBy(col("importance").desc()).limit(T)
     top_pdf = top_tuples.toPandas()
 
     print(f"\n Top {T} tuples by importance:")
     print(top_pdf.to_string(index=False))
 
-    # --- Step 7: Save to CSV ---
+    
     top_tuples.drop("popularity", "importance").write.csv(output_file, header=True, mode="overwrite")
 
     runtime = time.time() - start_time
     print(f"\n Method 2 completed successfully — results saved to {output_file}")
     print(f"⏱ Runtime: {runtime:.2f} seconds\n")
 
-    # --- Step 8: Compute placeholder metrics ---
+    
     imp_R = top_pdf["importance"].mean() if not top_pdf.empty else 0
     diversity = top_pdf["importance"].std() if not top_pdf.empty else 0
     query_coverage = df.filter(col("popularity") > 0).count() / df.count()
 
     spark.stop()
 
-    # --- Step 9: Return metrics ---
+    
     return {
         'imp_R': imp_R,
         'diversity': diversity,
