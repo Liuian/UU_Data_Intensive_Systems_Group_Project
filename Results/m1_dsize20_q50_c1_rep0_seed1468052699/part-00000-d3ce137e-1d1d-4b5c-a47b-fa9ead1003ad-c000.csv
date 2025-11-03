@@ -1,0 +1,5 @@
+ID,Year_Birth,Income,Kidhome,Teenhome,Recency,MntWines,MntFruits,MntMeatProducts,MntFishProducts,MntSweetProducts,MntGoldProds,NumDealsPurchases,NumWebPurchases,NumCatalogPurchases,NumStorePurchases,NumWebVisitsMonth,AcceptedCmp3,AcceptedCmp4,AcceptedCmp5,AcceptedCmp1,AcceptedCmp2,Complain,Z_CostContact,Z_Revenue,Response,Education_encoded,Marital_Status_encoded,Dt_Customer_int
+8534,1952,67433.0,0,2,51,615,28,259,12,48,30,4,6,5,13,4,0,1,0,0,0,0,3,11,0,2,1,20130716
+9284,1958,53977.0,0,1,21,620,16,165,0,24,82,5,5,5,12,5,0,0,0,0,0,0,3,11,0,2,2,20130608
+5831,1967,77870.0,0,1,93,1017,50,500,65,50,133,3,5,5,5,8,0,1,0,1,0,0,3,11,1,2,1,20120822
+5063,1977,28769.0,1,0,76,41,5,129,10,3,3,3,4,1,4,9,0,0,0,0,0,0,3,11,0,2,5,20121218

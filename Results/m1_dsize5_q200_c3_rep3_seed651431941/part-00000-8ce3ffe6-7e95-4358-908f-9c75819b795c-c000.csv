@@ -1,0 +1,2 @@
+ID,Year_Birth,Income,Kidhome,Teenhome,Recency,MntWines,MntFruits,MntMeatProducts,MntFishProducts,MntSweetProducts,MntGoldProds,NumDealsPurchases,NumWebPurchases,NumCatalogPurchases,NumStorePurchases,NumWebVisitsMonth,AcceptedCmp3,AcceptedCmp4,AcceptedCmp5,AcceptedCmp1,AcceptedCmp2,Complain,Z_CostContact,Z_Revenue,Response,Education_encoded,Marital_Status_encoded,Dt_Customer_int
+7247,1960,47916.0,0,1,72,505,0,26,0,0,75,5,7,4,6,6,0,1,0,0,0,0,3,11,0,2,4,20121122

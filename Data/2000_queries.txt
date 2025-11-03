@@ -1,0 +1,200 @@
+MntFruits < 154 OR Kidhome < 1
+MntGoldProds <= 257 AND NumDealsPurchases < 13 AND Income >= 42945
+MntGoldProds < 362 AND NumStorePurchases > 0
+Recency <= 93 OR MntMeatProducts > 382
+Year_Birth <= 1969 OR MntSweetProducts < 261 OR NumCatalogPurchases >= 8
+MntFishProducts <= 189 AND MntSweetProducts = 0
+Income = 472690 AND Complain > 0
+Z_Revenue < 11
+MntFruits > 49
+MntFruits > 28 AND NumStorePurchases > 1
+Recency = 0 AND MntGoldProds < 287
+MntFishProducts < 207
+Income = 215698
+NumDealsPurchases > 0 OR Year_Birth = 1955 OR Income > 100541
+MntGoldProds < 342 OR Teenhome > 0
+MntFruits < 154 AND NumCatalogPurchases < 27
+Recency < 85
+Income < 531993
+Year_Birth = 1970
+Teenhome <= 1 AND MntFruits <= 153 AND Income > 133168
+ID < 10910 AND Response < 0 AND Income < 572916
+MntMeatProducts = 791 AND NumStorePurchases = 0 AND Kidhome > 0
+NumCatalogPurchases < 24
+NumDealsPurchases > 0 OR NumWebPurchases < 25 OR AcceptedCmp4 < 1
+Z_CostContact < 3 OR NumWebPurchases <= 22 OR NumWebVisitsMonth = 0
+NumCatalogPurchases < 28
+Year_Birth > 1959 AND MntMeatProducts < 1547
+NumWebVisitsMonth >= 5
+Recency > 21
+MntWines > 155
+NumDealsPurchases > 3 AND Income >= 174754
+NumCatalogPurchases < 26 OR Complain >= 0
+MntFishProducts <= 216 AND MntMeatProducts >= 396 AND NumDealsPurchases < 10
+Year_Birth < 1915 AND NumStorePurchases < 13 AND MntSweetProducts > 50
+Income > 163253
+Income > 44350 AND Complain <= 0
+Year_Birth < 1932 OR NumWebVisitsMonth = 1 OR MntMeatProducts >= 292
+AcceptedCmp1 = 1
+NumWebPurchases < 21
+Year_Birth > 1946
+MntMeatProducts > 40
+MntMeatProducts < 1621
+MntFishProducts > 43 AND Income < 618107
+NumDealsPurchases > 1 AND Z_CostContact >= 3 AND AcceptedCmp5 >= 0
+Recency = 1 OR MntSweetProducts < 261 OR NumStorePurchases > 3
+Recency > 26 AND MntSweetProducts < 219 AND Year_Birth < 1969
+Year_Birth > 1993 AND NumWebVisitsMonth >= 0
+Complain < 1 AND NumStorePurchases = 2 AND Recency > 24
+Year_Birth = 1971 AND Complain < 0 AND Income > 103993
+Teenhome > 0 AND Income <= 499456
+Complain < 1 OR MntSweetProducts >= 33
+MntGoldProds < 343 OR MntSweetProducts < 262
+MntMeatProducts < 1477 AND Year_Birth > 1964 AND Kidhome > 0
+Complain >= 0 AND MntFishProducts > 64 AND NumDealsPurchases = 13
+NumDealsPurchases = 2 OR Year_Birth < 1971 OR NumStorePurchases < 12
+Teenhome >= 0 AND Kidhome = 1
+MntGoldProds = 242 OR MntSweetProducts > 60
+MntSweetProducts < 227 OR MntFruits < 159
+NumWebVisitsMonth >= 1 AND Kidhome < 1 AND NumWebPurchases < 19
+Recency <= 79 AND MntGoldProds > 42 AND Response >= 0
+NumWebPurchases < 24
+MntWines <= 1071
+Kidhome < 1 AND Income > 137963 AND NumWebVisitsMonth = 2
+Year_Birth > 1897 AND NumStorePurchases < 13 AND Recency < 72
+Response < 0
+Recency >= 11 AND NumDealsPurchases < 15 AND MntFruits < 174
+Complain > 0 OR Z_Revenue > 11 OR NumStorePurchases > 2
+MntMeatProducts = 717 OR NumCatalogPurchases >= 1
+NumCatalogPurchases < 22
+NumWebPurchases < 27
+Teenhome > 0 AND Complain = 0 AND MntWines > 352
+NumWebVisitsMonth = 15
+Year_Birth <= 1916 OR MntMeatProducts = 362 OR NumDealsPurchases = 13
+NumStorePurchases < 9 AND Complain = 1 AND MntFruits >= 2
+Kidhome >= 0
+Income >= 10227 OR MntGoldProds = 16 OR NumCatalogPurchases < 24
+NumDealsPurchases >= 3
+NumDealsPurchases > 3 OR Income > 37959
+Year_Birth <= 1991 AND MntGoldProds <= 322
+NumWebPurchases = 3
+Recency >= 1 AND NumStorePurchases < 9 AND MntFishProducts >= 42
+Recency < 99 OR Z_CostContact <= 3
+Recency > 27
+Kidhome = 0 AND AcceptedCmp3 < 1 AND NumDealsPurchases < 12
+Year_Birth = 1906 OR MntGoldProds < 350
+AcceptedCmp5 < 0
+MntGoldProds <= 305 OR MntFishProducts > 37
+MntGoldProds > 19 AND MntSweetProducts < 200
+ID > 2185
+MntFruits < 184 OR NumStorePurchases > 0
+Income <= 615634
+Recency > 4 OR MntGoldProds < 280
+NumDealsPurchases = 2
+Recency > 2 AND NumCatalogPurchases < 27
+MntGoldProds >= 60 OR NumWebPurchases = 10
+MntFishProducts >= 6 AND Complain > 0
+NumDealsPurchases >= 1
+NumWebVisitsMonth = 7
+MntFruits > 1 AND MntMeatProducts = 312 AND Kidhome < 2
+MntFruits > 13
+MntFruits >= 49 AND Z_CostContact < 3
+MntGoldProds > 51 AND Teenhome > 0
+MntGoldProds <= 288 OR NumCatalogPurchases = 19 OR NumWebPurchases = 26
+Complain = 1 OR MntSweetProducts > 57 OR NumStorePurchases < 13
+NumDealsPurchases = 1 OR NumWebPurchases >= 3
+NumDealsPurchases < 10 AND Recency >= 23 AND Z_CostContact < 3
+AcceptedCmp3 < 1 OR NumWebVisitsMonth < 19 OR Kidhome > 0
+Year_Birth < 1936 OR MntWines >= 26
+Teenhome >= 0 AND MntGoldProds = 228
+Complain = 0 AND NumCatalogPurchases > 4
+Kidhome <= 2 AND MntFruits <= 174
+MntGoldProds < 314
+Kidhome > 0
+NumWebPurchases > 8 OR NumCatalogPurchases > 1 OR MntSweetProducts < 191
+Recency < 82 OR MntSweetProducts > 6
+NumStorePurchases < 11
+AcceptedCmp3 < 0 OR NumCatalogPurchases >= 7 OR NumDealsPurchases > 0
+AcceptedCmp5 < 1
+Kidhome < 2
+Year_Birth <= 1976 AND Teenhome < 2 AND NumStorePurchases < 13
+Kidhome < 2 AND Recency < 86 AND Income < 536296
+Z_Revenue > 11 OR MntFruits > 29 OR Complain <= 1
+Year_Birth > 1942
+Income < 600771
+MntMeatProducts > 84 OR Income < 536029
+Year_Birth < 1906 OR NumWebPurchases < 27 OR MntGoldProds >= 13
+AcceptedCmp4 <= 1 OR Response >= 0 OR MntWines >= 248
+Z_Revenue > 11 AND NumWebVisitsMonth = 2
+Recency = 74
+MntMeatProducts = 747 AND Complain = 0 AND NumStorePurchases = 6
+NumDealsPurchases < 15
+MntFishProducts = 84 OR Income < 490625
+MntGoldProds = 323 AND MntFruits > 36 AND Year_Birth < 1916
+Income > 9344
+MntGoldProds <= 292 OR Income <= 642485
+NumWebVisitsMonth > 6 OR MntSweetProducts = 30 OR Z_Revenue > 11
+NumWebVisitsMonth = 0 OR MntGoldProds > 85 OR Complain < 1
+MntMeatProducts < 1711 AND Recency < 94 AND MntFruits < 164
+MntFishProducts > 35
+Income = 404557
+AcceptedCmp1 = 1
+AcceptedCmp5 = 0 AND MntFruits > 26
+MntMeatProducts < 1404
+MntMeatProducts >= 47 AND MntSweetProducts > 72
+NumCatalogPurchases <= 20 OR AcceptedCmp2 < 0 OR Complain <= 0
+NumDealsPurchases < 11 OR AcceptedCmp2 < 1
+AcceptedCmp1 = 1
+MntSweetProducts > 25 OR AcceptedCmp2 < 0 OR Complain > 0
+NumDealsPurchases <= 14
+Year_Birth < 1937 OR Response >= 0
+NumWebPurchases = 17 AND NumWebVisitsMonth = 8 AND Year_Birth <= 1955
+Kidhome < 1 OR NumWebPurchases = 13
+NumWebVisitsMonth > 5
+MntSweetProducts = 93 OR Recency > 13
+NumStorePurchases <= 9 OR Recency < 75
+Kidhome >= 0 AND Income <= 615922 AND Year_Birth < 1981
+NumStorePurchases > 3 OR AcceptedCmp4 < 1 OR MntFishProducts <= 230
+Recency >= 17
+NumWebPurchases >= 1 OR MntMeatProducts <= 1586
+MntGoldProds < 269 AND Teenhome < 1 AND Recency < 88
+AcceptedCmp1 = 0 OR NumDealsPurchases > 4
+Income > 49767 OR Recency > 14 OR Teenhome > 0
+MntMeatProducts > 81 OR MntSweetProducts > 23 OR NumCatalogPurchases > 6
+Year_Birth < 1917
+Complain <= 1 AND MntGoldProds <= 282 AND NumDealsPurchases < 13
+MntFruits > 4 AND MntFishProducts > 40
+Teenhome <= 2 AND MntMeatProducts = 692
+AcceptedCmp5 < 0
+Teenhome = 2 AND Complain > 0 AND NumCatalogPurchases <= 28
+Z_CostContact > 3 AND AcceptedCmp5 < 0 AND AcceptedCmp4 < 1
+Income = 474771
+Income > 54818
+Teenhome < 2 AND NumDealsPurchases > 2
+NumStorePurchases = 10 AND NumDealsPurchases < 13 AND MntFruits > 57
+NumWebPurchases = 20 OR Kidhome = 1 OR Complain = 0
+NumDealsPurchases <= 12
+Income = 10199 OR MntGoldProds <= 356 OR AcceptedCmp4 >= 0
+MntSweetProducts = 200 AND NumDealsPurchases > 0
+AcceptedCmp5 < 0 AND Complain = 0
+MntSweetProducts = 119 AND Complain < 1
+NumStorePurchases < 13
+NumDealsPurchases = 9
+Income > 89102 OR Response > 0 OR MntFruits > 57
+AcceptedCmp5 < 0 AND NumWebVisitsMonth > 2 AND NumWebPurchases > 6
+NumStorePurchases < 11 AND AcceptedCmp4 < 1
+NumStorePurchases > 1 AND AcceptedCmp5 < 1 AND MntFishProducts = 9
+NumStorePurchases > 1 OR Year_Birth = 1927
+ID < 9082
+Complain = 1 AND Year_Birth > 1970
+MntFruits <= 162 AND NumStorePurchases > 2 AND Income = 318081
+MntGoldProds = 201 OR NumDealsPurchases > 4 OR Year_Birth > 1899
+MntFruits = 191 AND AcceptedCmp3 < 1 AND Z_CostContact >= 3
+Teenhome > 0 OR NumWebVisitsMonth < 18
+Year_Birth < 1946 AND MntFruits >= 7 AND NumStorePurchases > 3
+Kidhome < 1
+NumWebPurchases >= 3 OR Complain > 0
+NumStorePurchases > 3 OR NumCatalogPurchases < 20
+Income < 491405 AND Recency <= 99
+Recency = 60 AND NumWebPurchases < 19 AND Year_Birth > 1907
+MntMeatProducts > 231 OR MntGoldProds = 167
